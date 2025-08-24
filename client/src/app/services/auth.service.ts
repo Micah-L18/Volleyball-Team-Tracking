@@ -22,10 +22,26 @@ export class AuthService {
   private loadCurrentUser(): void {
     const token = this.getToken();
     if (token && !this.isTokenExpired(token)) {
+      // Set user immediately from token to avoid race condition
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        this.currentUserSubject.next({ id: payload.userId, email: payload.email } as User);
+      } catch (error) {
+        console.warn('Failed to parse token payload:', error);
+      }
+      
+      // Then fetch fresh user data
       this.getCurrentUser().subscribe({
         next: (user) => this.currentUserSubject.next(user),
-        error: () => this.logout()
+        error: (error) => {
+          console.error('Failed to fetch current user:', error);
+          if (error.status === 401) {
+            this.logout();
+          }
+        }
       });
+    } else {
+      this.currentUserSubject.next(null);
     }
   }
 

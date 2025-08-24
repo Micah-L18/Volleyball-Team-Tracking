@@ -1,4 +1,4 @@
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8"></div>
   <!-- Loading State -->
   <div *ngIf="loading" class="flex justify-center items-center py-12">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -45,228 +45,458 @@
       </div>
     </div>
 
-    <!-- Edit Team Form -->
-    <div *ngIf="showEditForm" class="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 class="text-xl font-semibold mb-4">Edit Team Information</h2>
-      <form (ngSubmit)="updateTeam()" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Tabs Navigation -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <button
+          (click)="setActiveTab('info')"
+          [class]="activeTab === 'info' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="py-2 px-1 border-b-2 font-medium text-sm">
+          Team Info
+        </button>
+        <button
+          (click)="setActiveTab('members')"
+          [class]="activeTab === 'members' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="py-2 px-1 border-b-2 font-medium text-sm">
+          Members ({{ team.members.length || 0 }})
+        </button>
+        <button
+          (click)="setActiveTab('players')"
+          [class]="activeTab === 'players' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="py-2 px-1 border-b-2 font-medium text-sm">
+          Players ({{ players.length }})
+        </button>
+      </nav>
+    </div>
+
+    <!-- Tab Content -->
+
+    <!-- Team Info Tab -->
+    <div *ngIf="activeTab === 'info'">
+      <!-- Edit Team Form -->
+      <div *ngIf="showEditForm" class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Edit Team Information</h2>
+        <form (ngSubmit)="updateTeam()" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="editTeamName" class="block text-sm font-medium text-gray-700 mb-1">
+                Team Name *
+              </label>
+              <input
+                type="text"
+                id="editTeamName"
+                [(ngModel)]="editData.name"
+                name="editTeamName"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label for="editSeason" class="block text-sm font-medium text-gray-700 mb-1">
+                Season
+              </label>
+              <input
+                type="text"
+                id="editSeason"
+                [(ngModel)]="editData.season"
+                name="editSeason"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </div>
+
           <div>
-            <label for="editTeamName" class="block text-sm font-medium text-gray-700 mb-1">
-              Team Name *
+            <label for="editAgeGroup" class="block text-sm font-medium text-gray-700 mb-1">
+              Age Group
             </label>
             <input
               type="text"
-              id="editTeamName"
-              [(ngModel)]="editData.name"
-              name="editTeamName"
-              required
+              id="editAgeGroup"
+              [(ngModel)]="editData.age_group"
+              name="editAgeGroup"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
-          
+
           <div>
-            <label for="editSeason" class="block text-sm font-medium text-gray-700 mb-1">
-              Season
+            <label for="editDescription" class="block text-sm font-medium text-gray-700 mb-1">
+              Description
             </label>
-            <input
-              type="text"
-              id="editSeason"
-              [(ngModel)]="editData.season"
-              name="editSeason"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <textarea
+              id="editDescription"
+              [(ngModel)]="editData.description"
+              name="editDescription"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
           </div>
-        </div>
 
-        <div>
-          <label for="editAgeGroup" class="block text-sm font-medium text-gray-700 mb-1">
-            Age Group
-          </label>
-          <input
-            type="text"
-            id="editAgeGroup"
-            [(ngModel)]="editData.age_group"
-            name="editAgeGroup"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
+          <div class="flex gap-3">
+            <button
+              type="submit"
+              class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              Update Team
+            </button>
+            <button
+              type="button"
+              (click)="toggleEditForm()"
+              class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
 
-        <div>
-          <label for="editDescription" class="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <textarea
-            id="editDescription"
-            [(ngModel)]="editData.description"
-            name="editDescription"
-            rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-        </div>
-
-        <div class="flex gap-3">
-          <button
-            type="submit"
-            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Save Changes
-          </button>
-          <button
-            type="button"
-            (click)="resetEditForm()"
-            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Invite Member Form -->
-    <div *ngIf="showInviteForm" class="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 class="text-xl font-semibold mb-4">Invite Team Member</h2>
-      <form (ngSubmit)="inviteUser()" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Team Information Display -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Team Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label for="inviteEmail" class="block text-sm font-medium text-gray-700 mb-1">
-              Email Address *
-            </label>
-            <input
-              type="email"
-              id="inviteEmail"
-              [(ngModel)]="inviteData.email"
-              name="inviteEmail"
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter email address">
-          </div>
-          
-          <div>
-            <label for="inviteRole" class="block text-sm font-medium text-gray-700 mb-1">
-              Role *
-            </label>
-            <select
-              id="inviteRole"
-              [(ngModel)]="inviteData.role"
-              name="inviteRole"
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option *ngFor="let role of roles" [value]="role.value">
-                {{ role.label }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex gap-3">
-          <button
-            type="submit"
-            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Send Invitation
-          </button>
-          <button
-            type="button"
-            (click)="resetInviteForm()"
-            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Team Information -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 class="text-xl font-semibold mb-4">Team Information</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <div class="space-y-3">
-            <div *ngIf="team.season">
-              <span class="text-sm font-medium text-gray-500">Season:</span>
-              <p class="text-gray-900">{{ team.season }}</p>
-            </div>
-            <div *ngIf="team.age_group">
-              <span class="text-sm font-medium text-gray-500">Age Group:</span>
-              <p class="text-gray-900">{{ team.age_group }}</p>
-            </div>
-            <div *ngIf="team.creator_first_name">
-              <span class="text-sm font-medium text-gray-500">Created by:</span>
-              <p class="text-gray-900">{{ team.creator_first_name }} {{ team.creator_last_name }}</p>
+            <div class="space-y-3">
+              <div *ngIf="team.season">
+                <span class="text-sm font-medium text-gray-500">Season:</span>
+                <p class="text-gray-900">{{ team.season }}</p>
+              </div>
+              <div *ngIf="team.age_group">
+                <span class="text-sm font-medium text-gray-500">Age Group:</span>
+                <p class="text-gray-900">{{ team.age_group }}</p>
+              </div>
+              <div *ngIf="team.creator_first_name">
+                <span class="text-sm font-medium text-gray-500">Created by:</span>
+                <p class="text-gray-900">{{ team.creator_first_name }} {{ team.creator_last_name }}</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div *ngIf="team.description">
-          <span class="text-sm font-medium text-gray-500">Description:</span>
-          <p class="text-gray-900 mt-1">{{ team.description }}</p>
+          <div *ngIf="team.description">
+            <span class="text-sm font-medium text-gray-500">Description:</span>
+            <p class="text-gray-900 mt-1">{{ team.description }}</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Team Members -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-semibold mb-4">Team Members ({{ team.members.length }})</h2>
-      
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Joined
-              </th>
-              <th *ngIf="canInviteMembers()" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let member of team.members" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
+    <!-- Members Tab -->
+    <div *ngIf="activeTab === 'members'">
+      <!-- Invite Member Form -->
+      <div *ngIf="showInviteForm" class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Invite Team Member</h2>
+        <form (ngSubmit)="sendInvitation()" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="inviteEmail" class="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                id="inviteEmail"
+                [(ngModel)]="inviteData.email"
+                name="inviteEmail"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="member@example.com">
+            </div>
+            
+            <div>
+              <label for="inviteRole" class="block text-sm font-medium text-gray-700 mb-1">
+                Role *
+              </label>
+              <select
+                id="inviteRole"
+                [(ngModel)]="inviteData.role"
+                name="inviteRole"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select a role</option>
+                <option value="assistant_coach">Assistant Coach</option>
+                <option value="player">Player</option>
+                <option value="parent">Parent</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              type="submit"
+              class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              Send Invitation
+            </button>
+            <button
+              type="button"
+              (click)="toggleInviteForm()"
+              class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Team Members List -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Team Members</h2>
+        
+        <div *ngIf="team.members && team.members.length > 0; else noMembers" class="space-y-4">
+          <div *ngFor="let member of team.members" 
+               class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <div class="flex items-center space-x-4">
+              <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <span class="text-white font-medium">
+                  {{ member.first_name ? member.first_name.charAt(0).toUpperCase() : '?' }}{{ member.last_name ? member.last_name.charAt(0).toUpperCase() : '' }}
+                </span>
+              </div>
+              <div>
+                <h3 class="font-medium text-gray-900">
                   {{ member.first_name }} {{ member.last_name }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ member.email }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                      [ngClass]="{
-                        'bg-purple-100 text-purple-800': member.role === 'head_coach',
-                        'bg-blue-100 text-blue-800': member.role === 'assistant_coach',
-                        'bg-green-100 text-green-800': member.role === 'player',
-                        'bg-orange-100 text-orange-800': member.role === 'parent'
-                      }">
+                </h3>
+                <p class="text-sm text-gray-500">{{ member.email }}</p>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [class]="getRoleBadgeClass(member.role)">
                   {{ getRoleDisplayName(member.role) }}
                 </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ member.joined_date | date:'mediumDate' }}
-              </td>
-              <td *ngIf="canInviteMembers()" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <select 
-                    *ngIf="canChangeRole(member)"
-                    (change)="updateMemberRole(member, $any($event.target).value)"
-                    [value]="member.role"
-                    class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <option *ngFor="let role of roles" [value]="role.value">
-                      {{ role.label }}
-                    </option>
-                  </select>
-                  <button 
-                    *ngIf="canRemoveMember(member)"
-                    (click)="removeMember(member)"
-                    class="text-red-600 hover:text-red-900 transition-colors">
-                    Remove
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </div>
+            
+            <div *ngIf="canManageTeam() && member.role !== 'head_coach'" class="flex space-x-2">
+              <button
+                (click)="removeMember(member)"
+                class="text-red-600 hover:text-red-800 text-sm font-medium">
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noMembers>
+          <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No team members yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by inviting team members.</p>
+          </div>
+        </ng-template>
       </div>
+    </div>
+
+    <!-- Players Tab -->
+    <div *ngIf="activeTab === 'players'">
+      <!-- Add Player Button -->
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-semibold">Team Players</h2>
+        <button
+          *ngIf="canManageTeam()"
+          (click)="openPlayerModal()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          Add Player
+        </button>
+      </div>
+
+      <!-- Players Grid -->
+      <div *ngIf="players.length > 0; else noPlayers" 
+           class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div *ngFor="let player of players" 
+             class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+          <!-- Player Header -->
+          <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                <span class="text-white font-bold text-lg">
+                  {{ player.jersey_number || '?' }}
+                </span>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900">{{ player.name }}</h3>
+                <p *ngIf="player.position" class="text-sm text-gray-600">{{ player.position }}</p>
+              </div>
+            </div>
+            
+            <div *ngIf="canManageTeam()" class="flex space-x-1">
+              <button
+                (click)="editPlayer(player)"
+                class="text-blue-600 hover:text-blue-800 p-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                (click)="deletePlayer(player)"
+                class="text-red-600 hover:text-red-800 p-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Player Details -->
+          <div class="space-y-2 text-sm">
+            <div *ngIf="player.year" class="flex justify-between">
+              <span class="text-gray-500">Year:</span>
+              <span class="text-gray-900">{{ player.year }}</span>
+            </div>
+            <div *ngIf="player.height" class="flex justify-between">
+              <span class="text-gray-500">Height:</span>
+              <span class="text-gray-900">{{ player.height }}"</span>
+            </div>
+            <div *ngIf="player.reach" class="flex justify-between">
+              <span class="text-gray-500">Reach:</span>
+              <span class="text-gray-900">{{ player.reach }}"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noPlayers>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">No players yet</h3>
+          <p class="mt-1 text-gray-500">Get started by adding your first player.</p>
+          <div class="mt-6">
+            <button
+              *ngIf="canManageTeam()"
+              (click)="openPlayerModal()"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+              Add First Player
+            </button>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+<!-- Player Modal -->
+<div *ngIf="showPlayerModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" (click)="closePlayerModal()">
+  <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white" (click)="$event.stopPropagation()">
+    <div class="mt-3">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">
+          {{ isEditingPlayer ? 'Edit Player' : 'Add New Player' }}
+        </h3>
+        <button (click)="closePlayerModal()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Form -->
+      <form [formGroup]="playerForm" (ngSubmit)="onSubmitPlayer()">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Name (Required) -->
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Player Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              formControlName="name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="playerForm.get('name')?.invalid && playerForm.get('name')?.touched">
+            <div *ngIf="playerForm.get('name')?.invalid && playerForm.get('name')?.touched" class="mt-1 text-sm text-red-600">
+              Player name is required
+            </div>
+          </div>
+
+          <!-- Jersey Number -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Jersey Number</label>
+            <input
+              type="number"
+              formControlName="jersey_number"
+              min="0"
+              max="99"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+
+          <!-- Position -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
+            <select
+              formControlName="position"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">Select position</option>
+              <option *ngFor="let position of positions" [value]="position.value">{{ position.label }}</option>
+            </select>
+          </div>
+
+          <!-- Year -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+            <select
+              formControlName="year"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">Select year</option>
+              <option *ngFor="let year of years" [value]="year.value">{{ year.label }}</option>
+            </select>
+          </div>
+
+          <!-- Height -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Height (inches)</label>
+            <input
+              type="number"
+              formControlName="height"
+              placeholder="e.g., 72"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+
+          <!-- Reach -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Reach (inches)</label>
+            <input
+              type="number"
+              formControlName="reach"
+              placeholder="e.g., 96"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+
+          <!-- Dominant Hand -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Dominant Hand</label>
+            <select
+              formControlName="dominant_hand"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">Select hand</option>
+              <option *ngFor="let hand of dominantHands" [value]="hand.value">{{ hand.label }}</option>
+            </select>
+          </div>
+
+          <!-- Contact Info -->
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Contact Info</label>
+            <input
+              type="text"
+              formControlName="contact_info"
+              placeholder="Phone number, email, etc."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+
+          <!-- Notes -->
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              formControlName="notes"
+              rows="3"
+              placeholder="Any additional notes about the player..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex justify-end space-x-3 mt-6">
+          <button
+            type="button"
+            (click)="closePlayerModal()"
+            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="playerForm.invalid"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ isEditingPlayer ? 'Update Player' : 'Add Player' }}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

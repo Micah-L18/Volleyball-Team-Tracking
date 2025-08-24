@@ -14,16 +14,9 @@ export class TeamService {
 
   constructor(private http: HttpClient) {}
 
-  private getHeaders(): HttpHeaders {
-    const token = localStorage.getItem('token');
-    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
-  }
-
   // Get all teams for the authenticated user
   getTeams(): Observable<Team[]> {
-    return this.http.get<Team[]>(this.apiUrl, {
-      headers: this.getHeaders()
-    }).pipe(
+    return this.http.get<Team[]>(this.apiUrl).pipe(
       tap(teams => this.teamsSubject.next(teams))
     );
   }
@@ -37,8 +30,7 @@ export class TeamService {
   }): Observable<{message: string, team: Team}> {
     return this.http.post<{message: string, team: Team}>(
       this.apiUrl,
-      teamData,
-      { headers: this.getHeaders() }
+      teamData
     ).pipe(
       tap(response => {
         const currentTeams = this.teamsSubject.value;
@@ -49,9 +41,7 @@ export class TeamService {
 
   // Get specific team details
   getTeamDetails(teamId: number): Observable<TeamDetails> {
-    return this.http.get<TeamDetails>(`${this.apiUrl}/${teamId}`, {
-      headers: this.getHeaders()
-    });
+    return this.http.get<TeamDetails>(`${this.apiUrl}/${teamId}`);
   }
 
   // Update team information
@@ -63,8 +53,7 @@ export class TeamService {
   }): Observable<{message: string, team: Team}> {
     return this.http.put<{message: string, team: Team}>(
       `${this.apiUrl}/${teamId}`,
-      teamData,
-      { headers: this.getHeaders() }
+      teamData
     );
   }
 
@@ -72,16 +61,14 @@ export class TeamService {
   inviteUser(teamId: number, email: string, role: string): Observable<{message: string, member: TeamMember}> {
     return this.http.post<{message: string, member: TeamMember}>(
       `${this.apiUrl}/${teamId}/invite`,
-      { email, role },
-      { headers: this.getHeaders() }
+      { email, role }
     );
   }
 
   // Remove user from team
   removeMember(teamId: number, userId: number): Observable<{message: string}> {
     return this.http.delete<{message: string}>(
-      `${this.apiUrl}/${teamId}/members/${userId}`,
-      { headers: this.getHeaders() }
+      `${this.apiUrl}/${teamId}/members/${userId}`
     );
   }
 
@@ -89,8 +76,7 @@ export class TeamService {
   updateMemberRole(teamId: number, userId: number, role: string): Observable<{message: string}> {
     return this.http.put<{message: string}>(
       `${this.apiUrl}/${teamId}/members/${userId}/role`,
-      { role },
-      { headers: this.getHeaders() }
+      { role }
     );
   }
 
