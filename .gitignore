@@ -1,4 +1,5 @@
 node_modules
 .DS_Store
 .env
-vite
+.angular
+/Users/micahlloyd/Documents/Github Projects/Volleyball-Team-Tracking/client/.angular
