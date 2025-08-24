@@ -1,0 +1,21 @@
+{
+  "name": "volleyball-team-tracking-tests",
+  "version": "1.0.0",
+  "description": "Test suite for Volleyball Team Tracking App",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:auth": "jest phase2-auth.test.js",
+    "test:manual": "./phase2-auth-tests.sh"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "supertest": "^6.3.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 30000,
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"]
+  }
+}
