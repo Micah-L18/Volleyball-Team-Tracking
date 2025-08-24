@@ -290,7 +290,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-For support, email [your-email] or create an issue on GitHub.
+For support, email micah.dev.lloyd@gmail.com or create an issue on GitHub.
 
 ---
 
