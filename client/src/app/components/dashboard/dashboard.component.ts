@@ -8,57 +8,15 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-gray-50">
-      <!-- Navigation -->
-      <nav class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex justify-between h-16">
-            <div class="flex items-center">
-              <div class="flex-shrink-0 flex items-center">
-                <span class="text-2xl">🏐</span>
-                <h1 class="ml-2 text-xl font-bold text-gray-900">Volleyball Coach</h1>
-              </div>
-              <div class="hidden md:ml-10 md:flex md:space-x-8">
-                <a routerLink="/dashboard" 
-                   class="text-volleyball-orange border-volleyball-orange border-b-2 px-1 pt-1 pb-4 text-sm font-medium"
-                   routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
-                  Dashboard
-                </a>
-                <a routerLink="/teams" 
-                   class="text-gray-500 hover:text-gray-700 hover:border-gray-300 px-1 pt-1 pb-4 border-b-2 border-transparent text-sm font-medium"
-                   routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
-                  Teams
-                </a>
-                <a routerLink="/players" 
-                   class="text-gray-500 hover:text-gray-700 hover:border-gray-300 px-1 pt-1 pb-4 border-b-2 border-transparent text-sm font-medium"
-                   routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
-                  Players
-                </a>
-              </div>
-            </div>
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <button
-                  (click)="logout()"
-                  class="relative inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-volleyball-orange hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-volleyball-orange"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
+    <!-- Main dashboard content without navigation -->
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div class="px-4 py-6 sm:px-0">
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-gray-900">Welcome back!</h2>
+          <p class="mt-1 text-sm text-gray-600">
+            Here's what's happening with your volleyball teams today.
+          </p>
         </div>
-      </nav>
-
-      <!-- Main content -->
-      <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div class="px-4 py-6 sm:px-0">
-          <div class="mb-8">
-            <h2 class="text-2xl font-bold text-gray-900">Welcome back!</h2>
-            <p class="mt-1 text-sm text-gray-600">
-              Here's what's happening with your volleyball teams today.
-            </p>
-          </div>
 
           <!-- Stats Grid -->
           <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -168,8 +126,7 @@ import { AuthService } from '../../services/auth.service';
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
   `,
   styles: []
 })

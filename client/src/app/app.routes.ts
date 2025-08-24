@@ -4,7 +4,7 @@ import { AuthGuard } from './guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/login',
+    redirectTo: '/dashboard',
     pathMatch: 'full'
   },
   {
@@ -21,7 +21,17 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'teams',
+    loadComponent: () => import('./components/teams/teams.component').then(m => m.TeamsComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'teams/:id',
+    loadComponent: () => import('./components/team-detail/team-detail.component').then(m => m.TeamDetailComponent),
+    canActivate: [AuthGuard]
+  },
+  {
     path: '**',
-    redirectTo: '/login'
+    redirectTo: '/dashboard'
   }
 ];

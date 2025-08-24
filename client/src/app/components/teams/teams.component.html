@@ -1,1 +1,164 @@
-<p>teams works!</p>
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">My Teams</h1>
+    <button 
+      *ngIf="canCreateTeam()"
+      (click)="toggleCreateForm()"
+      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+      {{ showCreateForm ? 'Cancel' : 'Create Team' }}
+    </button>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+    {{ error }}
+  </div>
+
+  <!-- Create Team Form -->
+  <div *ngIf="showCreateForm" class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-xl font-semibold mb-4">Create New Team</h2>
+    <form (ngSubmit)="createTeam()" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="teamName" class="block text-sm font-medium text-gray-700 mb-1">
+            Team Name *
+          </label>
+          <input
+            type="text"
+            id="teamName"
+            [(ngModel)]="newTeam.name"
+            name="teamName"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter team name">
+        </div>
+        
+        <div>
+          <label for="season" class="block text-sm font-medium text-gray-700 mb-1">
+            Season *
+          </label>
+          <input
+            type="text"
+            id="season"
+            [(ngModel)]="newTeam.season"
+            name="season"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., Fall 2024, Spring 2025">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="ageGroup" class="block text-sm font-medium text-gray-700 mb-1">
+            Age Group
+          </label>
+          <input
+            type="text"
+            id="ageGroup"
+            [(ngModel)]="newTeam.age_group"
+            name="ageGroup"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., U16, High School, Adult">
+        </div>
+      </div>
+
+      <div>
+        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
+        <textarea
+          id="description"
+          [(ngModel)]="newTeam.description"
+          name="description"
+          rows="3"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Optional team description"></textarea>
+      </div>
+
+      <div class="flex gap-3">
+        <button
+          type="submit"
+          class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+          Create Team
+        </button>
+        <button
+          type="button"
+          (click)="resetForm()"
+          class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+
+  <!-- Teams Grid -->
+  <div *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div *ngFor="let team of teams" 
+         class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+      <div class="p-6">
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-xl font-semibold text-gray-900">{{ team.name }}</h3>
+          <span class="px-2 py-1 text-xs font-medium rounded-full"
+                [ngClass]="{
+                  'bg-purple-100 text-purple-800': team.role === 'head_coach',
+                  'bg-blue-100 text-blue-800': team.role === 'assistant_coach',
+                  'bg-green-100 text-green-800': team.role === 'player',
+                  'bg-orange-100 text-orange-800': team.role === 'parent'
+                }">
+            {{ getRoleDisplayName(team.role || '') }}
+          </span>
+        </div>
+
+        <div class="space-y-2 mb-4">
+          <p *ngIf="team.season" class="text-sm text-gray-600">
+            <span class="font-medium">Season:</span> {{ team.season }}
+          </p>
+          <p *ngIf="team.age_group" class="text-sm text-gray-600">
+            <span class="font-medium">Age Group:</span> {{ team.age_group }}
+          </p>
+          <p *ngIf="team.description" class="text-sm text-gray-600">
+            {{ team.description }}
+          </p>
+          <p *ngIf="team.joined_date" class="text-xs text-gray-500">
+            Joined: {{ team.joined_date | date:'mediumDate' }}
+          </p>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <button 
+            [routerLink]="['/teams', team.id]"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors">
+            View Details
+          </button>
+          <span class="text-xs text-gray-400">
+            ID: {{ team.id }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && teams.length === 0" class="text-center py-12">
+    <div class="max-w-md mx-auto">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No teams yet</h3>
+      <p class="mt-1 text-sm text-gray-500">Get started by creating your first team.</p>
+      <div class="mt-6">
+        <button 
+          (click)="toggleCreateForm()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          Create Team
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

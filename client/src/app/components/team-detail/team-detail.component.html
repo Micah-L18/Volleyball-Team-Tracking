@@ -1,0 +1,272 @@
+<div class="container mx-auto px-4 py-8">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+    {{ error }}
+  </div>
+
+  <!-- Team Details -->
+  <div *ngIf="!loading && team">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-8">
+      <div class="flex items-center space-x-4">
+        <button 
+          (click)="goBack()"
+          class="text-gray-600 hover:text-gray-800 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">{{ team.name }}</h1>
+          <p class="text-lg text-gray-600 mt-1">
+            Your role: <span class="font-medium">{{ getRoleDisplayName(team.userRole) }}</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="flex space-x-3">
+        <button 
+          *ngIf="canEditTeam()"
+          (click)="toggleEditForm()"
+          class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          {{ showEditForm ? 'Cancel Edit' : 'Edit Team' }}
+        </button>
+        <button 
+          *ngIf="canInviteMembers()"
+          (click)="toggleInviteForm()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          {{ showInviteForm ? 'Cancel' : 'Invite Member' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Edit Team Form -->
+    <div *ngIf="showEditForm" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4">Edit Team Information</h2>
+      <form (ngSubmit)="updateTeam()" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="editTeamName" class="block text-sm font-medium text-gray-700 mb-1">
+              Team Name *
+            </label>
+            <input
+              type="text"
+              id="editTeamName"
+              [(ngModel)]="editData.name"
+              name="editTeamName"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label for="editSeason" class="block text-sm font-medium text-gray-700 mb-1">
+              Season
+            </label>
+            <input
+              type="text"
+              id="editSeason"
+              [(ngModel)]="editData.season"
+              name="editSeason"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label for="editAgeGroup" class="block text-sm font-medium text-gray-700 mb-1">
+            Age Group
+          </label>
+          <input
+            type="text"
+            id="editAgeGroup"
+            [(ngModel)]="editData.age_group"
+            name="editAgeGroup"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <label for="editDescription" class="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <textarea
+            id="editDescription"
+            [(ngModel)]="editData.description"
+            name="editDescription"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            type="submit"
+            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            Save Changes
+          </button>
+          <button
+            type="button"
+            (click)="resetEditForm()"
+            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Invite Member Form -->
+    <div *ngIf="showInviteForm" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4">Invite Team Member</h2>
+      <form (ngSubmit)="inviteUser()" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="inviteEmail" class="block text-sm font-medium text-gray-700 mb-1">
+              Email Address *
+            </label>
+            <input
+              type="email"
+              id="inviteEmail"
+              [(ngModel)]="inviteData.email"
+              name="inviteEmail"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter email address">
+          </div>
+          
+          <div>
+            <label for="inviteRole" class="block text-sm font-medium text-gray-700 mb-1">
+              Role *
+            </label>
+            <select
+              id="inviteRole"
+              [(ngModel)]="inviteData.role"
+              name="inviteRole"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option *ngFor="let role of roles" [value]="role.value">
+                {{ role.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            type="submit"
+            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            Send Invitation
+          </button>
+          <button
+            type="button"
+            (click)="resetInviteForm()"
+            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Team Information -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4">Team Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <div class="space-y-3">
+            <div *ngIf="team.season">
+              <span class="text-sm font-medium text-gray-500">Season:</span>
+              <p class="text-gray-900">{{ team.season }}</p>
+            </div>
+            <div *ngIf="team.age_group">
+              <span class="text-sm font-medium text-gray-500">Age Group:</span>
+              <p class="text-gray-900">{{ team.age_group }}</p>
+            </div>
+            <div *ngIf="team.creator_first_name">
+              <span class="text-sm font-medium text-gray-500">Created by:</span>
+              <p class="text-gray-900">{{ team.creator_first_name }} {{ team.creator_last_name }}</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="team.description">
+          <span class="text-sm font-medium text-gray-500">Description:</span>
+          <p class="text-gray-900 mt-1">{{ team.description }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Members -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold mb-4">Team Members ({{ team.members.length }})</h2>
+      
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Role
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Joined
+              </th>
+              <th *ngIf="canInviteMembers()" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let member of team.members" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">
+                  {{ member.first_name }} {{ member.last_name }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ member.email }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                      [ngClass]="{
+                        'bg-purple-100 text-purple-800': member.role === 'head_coach',
+                        'bg-blue-100 text-blue-800': member.role === 'assistant_coach',
+                        'bg-green-100 text-green-800': member.role === 'player',
+                        'bg-orange-100 text-orange-800': member.role === 'parent'
+                      }">
+                  {{ getRoleDisplayName(member.role) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ member.joined_date | date:'mediumDate' }}
+              </td>
+              <td *ngIf="canInviteMembers()" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div class="flex space-x-2">
+                  <select 
+                    *ngIf="canChangeRole(member)"
+                    (change)="updateMemberRole(member, $any($event.target).value)"
+                    [value]="member.role"
+                    class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option *ngFor="let role of roles" [value]="role.value">
+                      {{ role.label }}
+                    </option>
+                  </select>
+                  <button 
+                    *ngIf="canRemoveMember(member)"
+                    (click)="removeMember(member)"
+                    class="text-red-600 hover:text-red-900 transition-colors">
+                    Remove
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

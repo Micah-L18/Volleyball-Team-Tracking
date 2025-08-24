@@ -1,2 +1,58 @@
 
-<router-outlet />
+<div class="min-h-screen bg-gray-50">
+  <!-- Persistent Navigation Bar -->
+  <nav class="bg-white shadow-sm" *ngIf="shouldShowNavigation()">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center">
+            <span class="text-2xl">🏐</span>
+            <h1 class="ml-2 text-xl font-bold text-gray-900">Volleyball Coach</h1>
+          </div>
+          <div class="hidden md:ml-10 md:flex md:space-x-8">
+            <a routerLink="/dashboard" 
+               class="text-gray-500 hover:text-gray-700 hover:border-gray-300 px-1 pt-1 pb-4 border-b-2 border-transparent text-sm font-medium"
+               routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
+              Dashboard
+            </a>
+            <a routerLink="/teams" 
+               class="text-gray-500 hover:text-gray-700 hover:border-gray-300 px-1 pt-1 pb-4 border-b-2 border-transparent text-sm font-medium"
+               routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
+              Teams
+            </a>
+            <a routerLink="/players" 
+               class="text-gray-500 hover:text-gray-700 hover:border-gray-300 px-1 pt-1 pb-4 border-b-2 border-transparent text-sm font-medium"
+               routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
+              Players
+            </a>
+            <a routerLink="/schedule" 
+               class="text-gray-500 hover:text-gray-700 hover:border-gray-300 px-1 pt-1 pb-4 border-b-2 border-transparent text-sm font-medium"
+               routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
+              Schedule
+            </a>
+            <a routerLink="/statistics" 
+               class="text-gray-500 hover:text-gray-700 hover:border-gray-300 px-1 pt-1 pb-4 border-b-2 border-transparent text-sm font-medium"
+               routerLinkActive="text-volleyball-orange border-volleyball-orange border-b-2">
+              Statistics
+            </a>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <button
+              (click)="logout()"
+              class="relative inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-volleyball-orange hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-volleyball-orange"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="flex-1">
+    <router-outlet />
+  </main>
+</div>
