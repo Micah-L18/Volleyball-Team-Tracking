@@ -9,11 +9,12 @@ import { TeamDetails, TeamMember } from '../../models/types';
 import { Player, CreatePlayerRequest, VOLLEYBALL_POSITIONS, PLAYER_YEARS, DOMINANT_HANDS } from '../../interfaces/player.interface';
 import { SkillRatingComponent } from '../skill-rating/skill-rating.component';
 import { AnalyticsDashboardComponent } from '../analytics-dashboard/analytics-dashboard.component';
+import { ScheduleComponent } from '../schedule/schedule.component';
 
 @Component({
   selector: 'app-team-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, SkillRatingComponent, AnalyticsDashboardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, SkillRatingComponent, AnalyticsDashboardComponent, ScheduleComponent],
   templateUrl: './team-detail.component.html',
   styleUrl: './team-detail.component.scss'
 })
@@ -25,7 +26,7 @@ export class TeamDetailComponent implements OnInit {
   error = '';
   
   // Tab management
-  activeTab: 'info' | 'members' | 'players' | 'skills' | 'analytics' = 'info';
+  activeTab: 'info' | 'members' | 'players' | 'skills' | 'analytics' | 'schedule' = 'info';
   selectedPlayerForRating: Player | null = null;
   
   // Team management
@@ -146,8 +147,13 @@ export class TeamDetailComponent implements OnInit {
   }
 
   // Tab management
-  setActiveTab(tab: 'info' | 'members' | 'players' | 'skills' | 'analytics'): void {
+  setActiveTab(tab: 'info' | 'members' | 'players' | 'skills' | 'analytics' | 'schedule'): void {
     this.activeTab = tab;
+  }
+
+  // Role checking
+  isCoach(): boolean {
+    return this.team?.userRole === 'head_coach' || this.team?.userRole === 'assistant_coach';
   }
 
   // Player management methods
