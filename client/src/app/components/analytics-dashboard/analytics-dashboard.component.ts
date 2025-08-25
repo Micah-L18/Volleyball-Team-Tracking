@@ -1,13 +1,15 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
-import { AnalyticsService, TeamAnalytics, InsightData } from '../../services/analytics.service';
+import { AnalyticsService, TeamAnalytics, InsightData, PlayerComparison, ProgressData } from '../../services/analytics.service';
 import { Team } from '../../models/types';
+import { PlayerComparisonComponent } from '../player-comparison/player-comparison.component';
+import { ProgressTrackingComponent } from '../progress-tracking/progress-tracking.component';
 
 @Component({
   selector: 'app-analytics-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PlayerComparisonComponent, ProgressTrackingComponent],
   template: `
     <div class="bg-white rounded-lg shadow-md p-6">
       <div class="flex justify-between items-center mb-6">
@@ -19,12 +21,30 @@ import { Team } from '../../models/types';
             class="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
             {{ loading ? 'Refreshing...' : 'Refresh' }}
           </button>
-          <button
-            (click)="exportReport()"
-            [disabled]="loading || !analytics"
-            class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
-            Export Report
-          </button>
+          <div class="relative">
+            <button
+              (click)="toggleExportMenu()"
+              [disabled]="loading || !analytics"
+              class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 flex items-center gap-1">
+              Export Report
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <div *ngIf="showExportMenu" 
+                 class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+              <div class="py-1">
+                <button (click)="exportReport('txt')" 
+                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  📄 Text Report
+                </button>
+                <button (click)="exportReport('csv')" 
+                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  📊 CSV Data
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -228,6 +248,17 @@ import { Team } from '../../models/types';
             </div>
           </div>
         </div>
+
+        <!-- Player Comparison Section -->
+        <app-player-comparison 
+          [players]="playerComparisonData">
+        </app-player-comparison>
+
+        <!-- Progress Tracking Section -->
+        <app-progress-tracking 
+          [progressData]="progressData"
+          [selectedTimeframe]="selectedTimeframe">
+        </app-progress-tracking>
       </div>
     </div>
   `,
@@ -240,6 +271,10 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
   insights: InsightData[] = [];
   loading = false;
   error = '';
+  selectedTimeframe = '6months';
+  showExportMenu = false;
+  playerComparisonData: PlayerComparison[] = [];
+  progressData: ProgressData[] = [];
 
   private subscriptions: Subscription[] = [];
 
@@ -261,7 +296,8 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
 
-    const sub = this.analyticsService.getTeamAnalytics(this.team.id).subscribe({
+    // Load main analytics
+    const analyticsSub = this.analyticsService.getTeamAnalytics(this.team.id).subscribe({
       next: (analytics) => {
         this.analytics = analytics;
         this.insights = this.analyticsService.generateInsights(analytics);
@@ -274,22 +310,61 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.subscriptions.push(sub);
+    // Load player comparison data
+    const comparisonSub = this.analyticsService.getPlayerComparison(this.team.id).subscribe({
+      next: (data) => {
+        console.log('Player comparison data received:', data);
+        this.playerComparisonData = data;
+      },
+      error: (error) => {
+        console.error('Error loading player comparison:', error);
+        if (error.status === 401) {
+          console.error('Authentication failed - token may be expired');
+          this.error = 'Authentication failed. Please log in again.';
+        } else {
+          this.error = 'Failed to load player comparison data';
+        }
+        this.playerComparisonData = [];
+      }
+    });
+
+    // Load progress data
+    const progressSub = this.analyticsService.getProgressData(this.team.id, '6months').subscribe({
+      next: (data) => {
+        this.progressData = data;
+      },
+      error: (error) => {
+        console.error('Error loading progress data:', error);
+      }
+    });
+
+    this.subscriptions.push(analyticsSub, comparisonSub, progressSub);
   }
 
   refreshAnalytics(): void {
     this.loadAnalytics();
   }
 
-  exportReport(): void {
+  toggleExportMenu(): void {
+    this.showExportMenu = !this.showExportMenu;
+  }
+
+  exportReport(format: string = 'txt'): void {
     if (!this.analytics || !this.team?.id) return;
 
-    const sub = this.analyticsService.exportTeamReport(this.team.id, this.team.name || 'Team').subscribe({
+    this.showExportMenu = false;
+
+    const exportObservable = format === 'csv' 
+      ? this.analyticsService.exportTeamReportCSV(this.team.id, this.team.name || 'Team')
+      : this.analyticsService.exportTeamReport(this.team.id, this.team.name || 'Team');
+
+    const sub = exportObservable.subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${(this.team.name || 'Team').replace(/\s+/g, '_')}_Analytics_Report.txt`;
+        const extension = format === 'csv' ? 'csv' : 'txt';
+        link.download = `${(this.team.name || 'Team').replace(/\s+/g, '_')}_Analytics_Report.${extension}`;
         link.click();
         window.URL.revokeObjectURL(url);
       },

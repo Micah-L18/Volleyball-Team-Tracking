@@ -57,7 +57,13 @@ describe('AnalyticsDashboardComponent', () => {
   };
 
   beforeEach(async () => {
-    const spy = jasmine.createSpyObj('AnalyticsService', ['getTeamAnalytics', 'generateInsights', 'exportTeamReport']);
+    const spy = jasmine.createSpyObj('AnalyticsService', [
+      'getTeamAnalytics', 
+      'generateInsights', 
+      'exportTeamReport',
+      'getPlayerComparison',
+      'getProgressData'
+    ]);
 
     await TestBed.configureTestingModule({
       imports: [AnalyticsDashboardComponent, HttpClientTestingModule],
@@ -73,6 +79,10 @@ describe('AnalyticsDashboardComponent', () => {
     
     // Set up the team input
     component.team = mockTeam;
+
+    // Set up default mock returns for new methods
+    analyticsServiceSpy.getPlayerComparison.and.returnValue(of([]));
+    analyticsServiceSpy.getProgressData.and.returnValue(of([]));
   });
 
   it('should create', () => {
@@ -82,10 +92,14 @@ describe('AnalyticsDashboardComponent', () => {
   it('should load analytics on init when team is provided', () => {
     analyticsServiceSpy.getTeamAnalytics.and.returnValue(of(mockAnalytics));
     analyticsServiceSpy.generateInsights.and.returnValue([]);
+    analyticsServiceSpy.getPlayerComparison.and.returnValue(of([]));
+    analyticsServiceSpy.getProgressData.and.returnValue(of([]));
 
     component.ngOnInit();
 
     expect(analyticsServiceSpy.getTeamAnalytics).toHaveBeenCalledWith(1);
+    expect(analyticsServiceSpy.getPlayerComparison).toHaveBeenCalledWith(1);
+    expect(analyticsServiceSpy.getProgressData).toHaveBeenCalledWith(1, '6months');
     expect(component.analytics).toEqual(mockAnalytics);
     expect(component.loading).toBeFalse();
   });
@@ -93,6 +107,8 @@ describe('AnalyticsDashboardComponent', () => {
   it('should handle analytics loading error', () => {
     const errorMessage = 'Failed to load analytics';
     analyticsServiceSpy.getTeamAnalytics.and.returnValue(throwError(() => new Error(errorMessage)));
+    analyticsServiceSpy.getPlayerComparison.and.returnValue(of([]));
+    analyticsServiceSpy.getProgressData.and.returnValue(of([]));
 
     component.ngOnInit();
 
@@ -103,10 +119,14 @@ describe('AnalyticsDashboardComponent', () => {
   it('should refresh analytics when requested', () => {
     analyticsServiceSpy.getTeamAnalytics.and.returnValue(of(mockAnalytics));
     analyticsServiceSpy.generateInsights.and.returnValue([]);
+    analyticsServiceSpy.getPlayerComparison.and.returnValue(of([]));
+    analyticsServiceSpy.getProgressData.and.returnValue(of([]));
 
     component.refreshAnalytics();
 
     expect(analyticsServiceSpy.getTeamAnalytics).toHaveBeenCalledWith(1);
+    expect(analyticsServiceSpy.getPlayerComparison).toHaveBeenCalledWith(1);
+    expect(analyticsServiceSpy.getProgressData).toHaveBeenCalledWith(1, '6months');
     expect(component.loading).toBeFalse();
   });
 

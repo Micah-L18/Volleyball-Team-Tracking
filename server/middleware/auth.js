@@ -21,11 +21,16 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('✅ Token verified successfully for user:', decoded.userId);
+    console.log('✅ Token verified successfully');
+    console.log('Decoded token contents:', JSON.stringify(decoded, null, 2));
+    console.log('User ID from token:', decoded.id); // Changed from decoded.userId to decoded.id
+    req.user = decoded;
     req.user = decoded;
     next();
   } catch (error) {
     console.error('❌ Token verification error:', error.message);
+    console.error('JWT Secret length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 'undefined');
+    console.error('Token length:', token ? token.length : 'undefined');
     res.status(401).json({ error: 'Invalid token.' });
   }
 };

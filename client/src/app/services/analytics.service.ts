@@ -11,8 +11,6 @@ export interface TeamAnalytics {
   topStrengths: SkillStrength[];
   improvementAreas: SkillImprovement[];
   categoryBreakdown: CategoryAnalysis[];
-  playerComparison: PlayerComparison[];
-  progressData: ProgressData[];
 }
 
 export interface SkillStrength {
@@ -48,12 +46,22 @@ export interface PlayerComparison {
   strengthCategory: string;
   weakestCategory: string;
   totalSkillsRated: number;
+  categoryAverages: { [category: string]: number };
+  skills: PlayerSkillDetail[];
+}
+
+export interface PlayerSkillDetail {
+  skillName: string;
+  skillCategory: string;
+  rating: number;
+  rank: number;
 }
 
 export interface ProgressData {
   month: string;
   averageRating: number;
   skillsRated: number;
+  playersRated: number;
 }
 
 export interface InsightData {
@@ -79,18 +87,30 @@ export class AnalyticsService {
     return forkJoin({
       teamAverages: this.skillRatingService.getTeamSkillAverages(teamId),
       players: this.http.get<any[]>(`${environment.apiUrl}/players/team/${teamId}`),
-      skills: this.skillRatingService.getSkills()
+      skills: this.skillRatingService.getSkills(),
+      playerComparison: this.getPlayerComparison(teamId),
+      progressData: this.getProgressData(teamId)
     }).pipe(
-      map(({ teamAverages, players, skills }) => {
-        return this.processTeamAnalytics(teamAverages, players, skills);
+      map(({ teamAverages, players, skills, playerComparison, progressData }) => {
+        return this.processTeamAnalytics(teamAverages, players, skills, playerComparison, progressData);
       })
     );
+  }
+
+  getPlayerComparison(teamId: number): Observable<PlayerComparison[]> {
+    return this.http.get<PlayerComparison[]>(`${environment.apiUrl}/skill-ratings/team/${teamId}/player-comparison`);
+  }
+
+  getProgressData(teamId: number, timeframe: string = '6months'): Observable<ProgressData[]> {
+    return this.http.get<ProgressData[]>(`${environment.apiUrl}/skill-ratings/team/${teamId}/progress?timeframe=${timeframe}`);
   }
 
   private processTeamAnalytics(
     teamAverages: TeamSkillAverage[],
     players: any[],
-    skills: any[]
+    skills: any[],
+    playerComparison: PlayerComparison[],
+    progressData: ProgressData[]
   ): TeamAnalytics {
     const totalPlayers = players.length;
     const totalSkillsRated = teamAverages.length;
@@ -145,13 +165,8 @@ export class AnalyticsService {
       }));
 
     // Category breakdown
+    // Category breakdown
     const categoryBreakdown = this.calculateCategoryBreakdown(teamAverages, skills);
-
-    // Player comparison (placeholder - would need individual player data)
-    const playerComparison: PlayerComparison[] = [];
-
-    // Progress data (placeholder - would need historical data)
-    const progressData: ProgressData[] = [];
 
     return {
       totalPlayers,
@@ -159,9 +174,7 @@ export class AnalyticsService {
       overallTeamAverage: Number((isNaN(overallTeamAverage) ? 0 : overallTeamAverage).toFixed(1)),
       topStrengths,
       improvementAreas,
-      categoryBreakdown,
-      playerComparison,
-      progressData
+      categoryBreakdown
     };
   }
 
@@ -275,6 +288,48 @@ export class AnalyticsService {
         return new Blob([reportData], { type: 'text/plain' });
       })
     );
+  }
+
+  exportTeamReportCSV(teamId: number, teamName: string): Observable<Blob> {
+    return this.getTeamAnalytics(teamId).pipe(
+      map(analytics => {
+        const csvData = this.generateCSVData(analytics, teamName);
+        return new Blob([csvData], { type: 'text/csv' });
+      })
+    );
+  }
+
+  private generateCSVData(analytics: TeamAnalytics, teamName: string): string {
+    let csv = `Team Analytics Report - ${teamName}\n`;
+    csv += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+    
+    csv += `Team Overview\n`;
+    csv += `Metric,Value\n`;
+    csv += `Total Players,${analytics.totalPlayers}\n`;
+    csv += `Skills Rated,${analytics.totalSkillsRated}\n`;
+    csv += `Overall Average,${analytics.overallTeamAverage}\n\n`;
+    
+    csv += `Top Strengths\n`;
+    csv += `Skill,Category,Average Rating,Player Count\n`;
+    analytics.topStrengths.forEach(strength => {
+      csv += `${strength.skillName},${strength.category},${strength.averageRating},${strength.playerCount}\n`;
+    });
+    csv += `\n`;
+    
+    csv += `Focus Areas\n`;
+    csv += `Skill,Category,Average Rating,Player Count\n`;
+    analytics.improvementAreas.forEach(area => {
+      csv += `${area.skillName},${area.category},${area.averageRating},${area.playerCount}\n`;
+    });
+    csv += `\n`;
+    
+    csv += `Category Breakdown\n`;
+    csv += `Category,Average Rating,Completion %,Top Skill,Weakest Skill\n`;
+    analytics.categoryBreakdown.forEach(category => {
+      csv += `${category.category},${category.averageRating},${category.completionPercentage.toFixed(1)},${category.topSkill},${category.weakestSkill}\n`;
+    });
+    
+    return csv;
   }
 
   private generateReportData(analytics: TeamAnalytics, teamName: string): string {

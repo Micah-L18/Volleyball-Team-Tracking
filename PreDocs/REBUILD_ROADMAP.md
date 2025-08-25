@@ -957,7 +957,7 @@ module.exports = {
 2. **Database Migration**: Run schema updates with new tables
 3. **File Storage Configuration**: Set up video file storage and CDN
 4. **Email Service**: Configure transactional email for invitations
-5. **Monitoring**: Set up logging, error tracking, and performance monitoring
+5. **Monitoring**: Set up logging, error tracking, and performance monitoring8
 
 ### Step 13.2: User Documentation
 1. **Coach Guide**: Complete coaching features documentation
