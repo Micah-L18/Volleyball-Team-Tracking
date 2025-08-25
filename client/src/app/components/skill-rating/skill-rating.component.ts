@@ -593,7 +593,7 @@ export class SkillRatingComponent implements OnInit, OnDestroy, OnChanges {
   getCurrentRating(skillName: string): number {
     const rating = this.playerRatings.find(r => r.skill_name === skillName);
     const result = rating ? rating.rating : 0;
-    console.log(`🔍 getCurrentRating(${skillName}): found=${!!rating}, rating=${result}, type=${typeof result}`);
+    // console.log(`🔍 getCurrentRating(${skillName}): found=${!!rating}, rating=${result}, type=${typeof result}`);
     return result;
   }
 

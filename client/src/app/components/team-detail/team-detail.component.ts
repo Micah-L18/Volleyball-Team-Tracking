@@ -8,11 +8,12 @@ import { AuthService } from '../../services/auth.service';
 import { TeamDetails, TeamMember } from '../../models/types';
 import { Player, CreatePlayerRequest, VOLLEYBALL_POSITIONS, PLAYER_YEARS, DOMINANT_HANDS } from '../../interfaces/player.interface';
 import { SkillRatingComponent } from '../skill-rating/skill-rating.component';
+import { AnalyticsDashboardComponent } from '../analytics-dashboard/analytics-dashboard.component';
 
 @Component({
   selector: 'app-team-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, SkillRatingComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, SkillRatingComponent, AnalyticsDashboardComponent],
   templateUrl: './team-detail.component.html',
   styleUrl: './team-detail.component.scss'
 })
@@ -24,7 +25,7 @@ export class TeamDetailComponent implements OnInit {
   error = '';
   
   // Tab management
-  activeTab: 'info' | 'members' | 'players' | 'skills' = 'info';
+  activeTab: 'info' | 'members' | 'players' | 'skills' | 'analytics' = 'info';
   selectedPlayerForRating: Player | null = null;
   
   // Team management
@@ -145,7 +146,7 @@ export class TeamDetailComponent implements OnInit {
   }
 
   // Tab management
-  setActiveTab(tab: 'info' | 'members' | 'players' | 'skills'): void {
+  setActiveTab(tab: 'info' | 'members' | 'players' | 'skills' | 'analytics'): void {
     this.activeTab = tab;
   }
 

@@ -297,4 +297,3 @@ For support, email micah.dev.lloyd@gmail.com or create an issue on GitHub.
 **Made with ❤️ for volleyball coaches worldwide**
 
 *Track progress, build champions* 🏆
-
