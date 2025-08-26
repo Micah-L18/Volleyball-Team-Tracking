@@ -13,6 +13,8 @@ const teamAccessRoutes = require('./routes/team-access');
 const videoRoutes = require('./routes/videos');
 const statisticsRoutes = require('./routes/statistics');
 const commentRoutes = require('./routes/comments');
+const attendanceRoutes = require('./routes/attendance');
+const availabilityRoutes = require('./routes/availability');
 
 dotenv.config();
 
@@ -44,6 +46,8 @@ app.use('/api/team-access', teamAccessRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/availability', availabilityRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

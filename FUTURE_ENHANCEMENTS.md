@@ -51,5 +51,9 @@
   - Live score updates during tournaments
   - Tournament standings and results
 
+### Hover over stars to show before click
+- [ ] **Skills Rating**
+
+
 ---
 *This list will be prioritized based on user feedback and development capacity.*

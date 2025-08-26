@@ -113,10 +113,18 @@ router.get('/:teamId', authMiddleware, async (req, res) => {
     
     // Get team members
     const membersQuery = `
-      SELECT u.id, u.first_name, u.last_name, u.email, tu.role, tu.joined_date
+      SELECT 
+        tu.id,
+        u.id as user_id, 
+        u.first_name, 
+        u.last_name, 
+        u.email, 
+        tu.role, 
+        tu.joined_date,
+        tu.status
       FROM users u
       JOIN team_users tu ON u.id = tu.user_id
-      WHERE tu.team_id = $1
+      WHERE tu.team_id = $1 AND tu.status = 'accepted'
       ORDER BY 
         CASE tu.role
           WHEN 'head_coach' THEN 1

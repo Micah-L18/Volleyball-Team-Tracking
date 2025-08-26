@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TeamService } from '../../services/team.service';
 import { PlayerService } from '../../services/player.service';
 import { AuthService } from '../../services/auth.service';
+import { TeamMemberService } from '../../services/team-member.service';
 import { TeamDetails, TeamMember } from '../../models/types';
 import { Player, CreatePlayerRequest, VOLLEYBALL_POSITIONS, PLAYER_YEARS, DOMINANT_HANDS } from '../../interfaces/player.interface';
 import { SkillRatingComponent } from '../skill-rating/skill-rating.component';
@@ -40,6 +41,13 @@ export class TeamDetailComponent implements OnInit {
   playerForm: FormGroup;
   submittingPlayer = false;
 
+  // Role editing
+  editingMemberId: number | null = null;
+  savingRole = false;
+  memberToRemove: TeamMember | null = null;
+  successMessage = '';
+  errorMessage = '';
+
   inviteData = {
     email: '',
     role: 'player'
@@ -58,6 +66,13 @@ export class TeamDetailComponent implements OnInit {
     { value: 'parent', label: 'Parent' }
   ];
 
+  availableRoles = [
+    { value: 'head_coach', label: 'Head Coach' },
+    { value: 'assistant_coach', label: 'Assistant Coach' },
+    { value: 'player', label: 'Player' },
+    { value: 'parent', label: 'Parent' }
+  ];
+
   // Player constants
   positions = VOLLEYBALL_POSITIONS;
   years = PLAYER_YEARS;
@@ -67,6 +82,7 @@ export class TeamDetailComponent implements OnInit {
     private teamService: TeamService,
     private playerService: PlayerService,
     private authService: AuthService,
+    private teamMemberService: TeamMemberService,
     private route: ActivatedRoute,
     private router: Router,
     private fb: FormBuilder
@@ -447,8 +463,186 @@ export class TeamDetailComponent implements OnInit {
     return new Date(date).toLocaleDateString();
   }
 
+  // Role editing methods
+  startEditRole(member: TeamMember & { editingRole?: boolean; newRole?: string }): void {
+    if (this.editingMemberId) return;
+    
+    member.editingRole = true;
+    member.newRole = member.role;
+    this.editingMemberId = member.id;
+    this.clearMessages();
+    console.log('Starting edit for member:', member); // Debug log
+  }
+
+  cancelEditRole(member: TeamMember & { editingRole?: boolean; newRole?: string }): void {
+    member.editingRole = false;
+    member.newRole = undefined;
+    this.editingMemberId = null;
+  }
+
+  saveRole(member: TeamMember & { editingRole?: boolean; newRole?: string }): void {
+    if (!member.newRole || this.savingRole || !this.team?.id || !member.id) return;
+
+    console.log('Saving role for member:', member); // Debug log
+    console.log('Team ID:', this.team.id, 'Member ID:', member.id, 'New Role:', member.newRole); // Debug log
+
+    // Check if this is promoting someone to head coach
+    if (member.newRole === 'head_coach' && member.role !== 'head_coach') {
+      this.handleHeadCoachTransfer(member);
+      return;
+    }
+
+    this.savingRole = true;
+    this.clearMessages();
+
+    this.teamMemberService.updateMemberRole(this.team.id, member.id, member.newRole).subscribe({
+      next: (response) => {
+        console.log('Role update response:', response); // Debug log
+        member.role = member.newRole as any;
+        member.editingRole = false;
+        member.newRole = undefined;
+        this.editingMemberId = null;
+        this.savingRole = false;
+        this.successMessage = response.message;
+        this.autoHideMessage();
+      },
+      error: (error) => {
+        console.error('Error updating member role:', error);
+        this.errorMessage = error.error?.error || 'Failed to update member role';
+        this.savingRole = false;
+        this.autoHideMessage();
+      }
+    });
+  }
+
+  private handleHeadCoachTransfer(member: TeamMember & { editingRole?: boolean; newRole?: string }): void {
+    const memberName = `${member.first_name} ${member.last_name}` || member.email || 'this member';
+    const confirmMessage = `Are you sure you want to transfer head coach ownership to ${memberName}?\n\n` +
+                          `This will:\n` +
+                          `• Make ${memberName} the new head coach and team owner\n` +
+                          `• Change your role to assistant coach\n` +
+                          `• Give them full control over the team\n\n` +
+                          `This action cannot be undone.`;
+
+    if (confirm(confirmMessage)) {
+      this.savingRole = true;
+      this.clearMessages();
+
+      if (!this.team?.id || !member.id) return;
+
+      this.teamMemberService.updateMemberRole(this.team.id, member.id, member.newRole!, true).subscribe({
+        next: (response) => {
+          console.log('Head coach transfer response:', response);
+          
+          if (response.ownershipTransferred) {
+            // Update the current member's role
+            member.role = 'head_coach' as any;
+            member.editingRole = false;
+            member.newRole = undefined;
+            this.editingMemberId = null;
+            
+            // Update current user's role in the team members list
+            if (this.team && this.team.members) {
+              // Get current user ID from auth service
+              this.authService.getCurrentUser().subscribe(currentUser => {
+                const currentMember = this.team!.members!.find(m => m.user_id === currentUser.id);
+                if (currentMember) {
+                  currentMember.role = 'assistant_coach';
+                }
+              });
+            }
+            
+            // Update team user role
+            if (this.team) {
+              this.team.userRole = 'assistant_coach';
+            }
+            
+            this.successMessage = `Head coach transferred successfully. ${memberName} is now the team owner.`;
+          } else {
+            this.successMessage = response.message;
+          }
+          
+          this.savingRole = false;
+          this.autoHideMessage();
+        },
+        error: (error) => {
+          console.error('Error transferring head coach:', error);
+          this.errorMessage = error.error?.error || 'Failed to transfer head coach ownership';
+          this.savingRole = false;
+          this.autoHideMessage();
+        }
+      });
+    } else {
+      // User cancelled, reset the role selection
+      member.newRole = member.role;
+    }
+  }
+
+  confirmRemoveMember(member: TeamMember): void {
+    this.memberToRemove = member;
+  }
+
+  cancelRemoveMember(): void {
+    this.memberToRemove = null;
+  }
+
+  removeMemberConfirmed(): void {
+    if (!this.memberToRemove?.id || !this.team?.id) return;
+
+    this.teamMemberService.removeMember(this.team.id, this.memberToRemove.id).subscribe({
+      next: (response) => {
+        if (this.team && this.team.members) {
+          this.team.members = this.team.members.filter(m => m.id !== this.memberToRemove!.id);
+        }
+        this.successMessage = response.message;
+        this.memberToRemove = null;
+        this.autoHideMessage();
+      },
+      error: (error) => {
+        console.error('Error removing member:', error);
+        this.errorMessage = error.error?.error || 'Failed to remove member';
+        this.autoHideMessage();
+      }
+    });
+  }
+
+  canEditMemberRoles(): boolean {
+    return this.team?.userRole === 'head_coach';
+  }
+
+  getInitials(firstName: string, lastName: string): string {
+    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  }
+
+  private clearMessages(): void {
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  private autoHideMessage(): void {
+    setTimeout(() => {
+      this.clearMessages();
+    }, 5000);
+  }
+
   changeRole(member: TeamMember): void {
     // This method can be implemented later for inline role changes
     console.log('Change role for:', member);
+  }
+
+  trackByMemberId(index: number, member: TeamMember): number {
+    return member.id;
+  }
+
+  isEditingRole(member: TeamMember): boolean {
+    return (member as any).editingRole || false;
+  }
+
+  getMemberNewRole(member: TeamMember): string {
+    return (member as any).newRole || member.role;
+  }
+
+  setMemberNewRole(member: TeamMember, role: string): void {
+    (member as any).newRole = role;
   }
 }

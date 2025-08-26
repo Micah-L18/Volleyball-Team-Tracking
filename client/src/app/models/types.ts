@@ -60,6 +60,7 @@ export interface TeamDetails extends Team {
 
 export interface TeamMember {
   id: number;
+  user_id: number;
   first_name: string;
   last_name: string;
   email: string;

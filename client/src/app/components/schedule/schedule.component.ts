@@ -3,16 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ScheduleService, ScheduleEvent, CreateScheduleEventRequest } from '../../services/schedule.service';
-import { Team } from '../../models/types';
+import { AttendanceService, AttendanceRecord } from '../../services/attendance.service';
+import { PlayerService } from '../../services/player.service';
+import { Team, Player } from '../../models/types';
 import { CalendarComponent } from '../calendar/calendar.component';
 import { ModalService } from '../../services/modal.service';
 import { AddEventModalComponent } from '../add-event-modal/add-event-modal.component';
 import { EditEventModalComponent } from '../edit-event-modal/edit-event-modal.component';
+import { AttendanceModalComponent } from '../attendance-modal/attendance-modal.component';
 
 @Component({
   selector: 'app-schedule',
   standalone: true,
-  imports: [CommonModule, FormsModule, CalendarComponent, AddEventModalComponent, EditEventModalComponent],
+  imports: [CommonModule, FormsModule, CalendarComponent, AddEventModalComponent, EditEventModalComponent, AttendanceModalComponent],
   template: `
     <!-- Add Event Modal - Always available -->
     <app-add-event-modal
@@ -28,6 +31,15 @@ import { EditEventModalComponent } from '../edit-event-modal/edit-event-modal.co
       (eventUpdated)="onEventUpdated($event)"
       (modalClosed)="onEditModalClosed()">
     </app-edit-event-modal>
+
+    <!-- Attendance Modal - Always available -->
+    <app-attendance-modal
+      [event]="attendanceEvent!"
+      [players]="teamPlayers"
+      [isVisible]="!!attendanceEvent"
+      (attendanceMarked)="onAttendanceMarked($event)"
+      (modalClosed)="onAttendanceModalClosed()">
+    </app-attendance-modal>
 
     <div class="bg-white rounded-lg shadow-md p-6">
       <!-- Header -->
@@ -180,6 +192,14 @@ import { EditEventModalComponent } from '../edit-event-modal/edit-event-modal.co
               <!-- Actions -->
               <div *ngIf="canCreateEvents" class="flex items-center gap-2 ml-4">
                 <button
+                  (click)="markAttendance(event)"
+                  class="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                  title="Mark attendance">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+                <button
                   (click)="editEvent(event)"
                   class="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                   title="Edit event">
@@ -242,6 +262,7 @@ export class ScheduleComponent implements OnInit, OnDestroy {
 
   events: ScheduleEvent[] = [];
   filteredEvents: ScheduleEvent[] = [];
+  teamPlayers: Player[] = [];
   loading = false;
   error = '';
   
@@ -252,16 +273,22 @@ export class ScheduleComponent implements OnInit, OnDestroy {
   // For edit modal
   editingEvent: ScheduleEvent | null = null;
 
+  // For attendance modal
+  attendanceEvent: ScheduleEvent | null = null;
+
   private subscriptions: Subscription[] = [];
 
   constructor(
     public scheduleService: ScheduleService,
+    private attendanceService: AttendanceService,
+    private playerService: PlayerService,
     private modalService: ModalService
   ) {}
 
   ngOnInit(): void {
     if (this.team?.id) {
       this.loadSchedule();
+      this.loadTeamPlayers();
     }
   }
 
@@ -285,6 +312,21 @@ export class ScheduleComponent implements OnInit, OnDestroy {
         console.error('Error loading schedule:', error);
         this.error = 'Failed to load team schedule';
         this.loading = false;
+      }
+    });
+
+    this.subscriptions.push(subscription);
+  }
+
+  loadTeamPlayers(): void {
+    if (!this.team?.id) return;
+
+    const subscription = this.playerService.getTeamPlayers(this.team.id).subscribe({
+      next: (players) => {
+        this.teamPlayers = players as any; // Type assertion to resolve interface conflicts
+      },
+      error: (error) => {
+        console.error('Error loading team players:', error);
       }
     });
 
@@ -366,6 +408,19 @@ export class ScheduleComponent implements OnInit, OnDestroy {
 
   onEditModalClosed(): void {
     this.editingEvent = null;
+  }
+
+  markAttendance(event: ScheduleEvent): void {
+    this.attendanceEvent = event;
+  }
+
+  onAttendanceMarked(attendance: AttendanceRecord[]): void {
+    // Optionally refresh data or show success message
+    console.log('Attendance marked:', attendance);
+  }
+
+  onAttendanceModalClosed(): void {
+    this.attendanceEvent = null;
   }
 
   deleteEvent(event: ScheduleEvent): void {
