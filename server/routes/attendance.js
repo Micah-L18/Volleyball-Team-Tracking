@@ -59,7 +59,7 @@ router.get('/player/:playerId', authMiddleware, async (req, res) => {
 
     // Verify user has access to this player's team
     const accessCheck = await pool.query(`
-      SELECT p.id FROM players p
+      SELECT p.id FROM player p
       JOIN team_users tu ON p.team_id = tu.team_id
       WHERE p.id = $1 AND tu.user_id = $2
     `, [playerId, req.user.id]);
@@ -210,7 +210,7 @@ router.get('/summary/:teamId', authMiddleware, async (req, res) => {
           NULLIF(COUNT(CASE WHEN a.status IN ('present', 'absent', 'late') THEN 1 END), 0), 
           2
         ) as attendance_percentage
-      FROM players p
+      FROM player p
       LEFT JOIN attendance a ON p.id = a.player_id
       LEFT JOIN schedule_events se ON a.event_id = se.id
       WHERE p.team_id = $1 ${dateFilter}

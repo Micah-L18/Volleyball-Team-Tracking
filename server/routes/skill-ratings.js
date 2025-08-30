@@ -135,7 +135,9 @@ router.get('/team/:teamId/player-comparison', authMiddleware, async (req, res) =
 
     // First get all players for the team
     const playersResult = await pool.query(`
-      SELECT id, name FROM player WHERE team_id = $1 ORDER BY name
+      SELECT id, first_name, last_name, 
+             first_name || COALESCE(' ' || last_name, '') as name 
+      FROM player WHERE team_id = $1 ORDER BY first_name, last_name
     `, [teamId]);
 
     console.log(`Found ${playersResult.rows.length} players for team ${teamId}:`, playersResult.rows);
@@ -154,7 +156,7 @@ router.get('/team/:teamId/player-comparison', authMiddleware, async (req, res) =
     const result = await pool.query(`
       SELECT 
         p.id as player_id,
-        p.name as player_name,
+        p.first_name || COALESCE(' ' || p.last_name, '') as player_name,
         sr.skill_category,
         sr.skill_name,
         sr.rating,
@@ -164,7 +166,7 @@ router.get('/team/:teamId/player-comparison', authMiddleware, async (req, res) =
       FROM player p
       LEFT JOIN skill_ratings sr ON p.id = sr.player_id
       WHERE p.team_id = $1 AND sr.rating IS NOT NULL
-      ORDER BY p.name, sr.skill_category, sr.skill_name
+      ORDER BY p.first_name, p.last_name, sr.skill_category, sr.skill_name
     `, [teamId]);
 
     console.log(`Player comparison query returned ${result.rows.length} rows for team ${teamId}`);

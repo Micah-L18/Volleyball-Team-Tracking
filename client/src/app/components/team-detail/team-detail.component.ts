@@ -11,11 +11,13 @@ import { Player, CreatePlayerRequest, VOLLEYBALL_POSITIONS, PLAYER_YEARS, DOMINA
 import { SkillRatingComponent } from '../skill-rating/skill-rating.component';
 import { AnalyticsDashboardComponent } from '../analytics-dashboard/analytics-dashboard.component';
 import { ScheduleComponent } from '../schedule/schedule.component';
+import { StatisticsDashboardComponent } from '../statistics-dashboard/statistics-dashboard.component';
+import { VideoGalleryComponent } from '../video-gallery/video-gallery.component';
 
 @Component({
   selector: 'app-team-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, SkillRatingComponent, AnalyticsDashboardComponent, ScheduleComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, SkillRatingComponent, AnalyticsDashboardComponent, ScheduleComponent, StatisticsDashboardComponent, VideoGalleryComponent],
   templateUrl: './team-detail.component.html',
   styleUrl: './team-detail.component.scss'
 })
@@ -27,7 +29,7 @@ export class TeamDetailComponent implements OnInit {
   error = '';
   
   // Tab management
-  activeTab: 'info' | 'members' | 'players' | 'skills' | 'analytics' | 'schedule' = 'info';
+  activeTab: 'info' | 'members' | 'players' | 'skills' | 'analytics' | 'schedule' | 'statistics' | 'videos' = 'info';
   selectedPlayerForRating: Player | null = null;
   
   // Team management
@@ -40,6 +42,15 @@ export class TeamDetailComponent implements OnInit {
   editingPlayer: Player | null = null;
   playerForm: FormGroup;
   submittingPlayer = false;
+
+  // Bulk import
+  showBulkImportModal = false;
+  bulkImportMethod: 'text' | 'csv' = 'text';
+  bulkImportText = '';
+  csvFileName = '';
+  parsedPlayers: any[] = [];
+  bulkImportErrors: string[] = [];
+  submittingBulkImport = false;
 
   // Role editing
   editingMemberId: number | null = null;
@@ -67,7 +78,6 @@ export class TeamDetailComponent implements OnInit {
   ];
 
   availableRoles = [
-    { value: 'head_coach', label: 'Head Coach' },
     { value: 'assistant_coach', label: 'Assistant Coach' },
     { value: 'player', label: 'Player' },
     { value: 'parent', label: 'Parent' }
@@ -163,7 +173,7 @@ export class TeamDetailComponent implements OnInit {
   }
 
   // Tab management
-  setActiveTab(tab: 'info' | 'members' | 'players' | 'skills' | 'analytics' | 'schedule'): void {
+  setActiveTab(tab: 'info' | 'members' | 'players' | 'skills' | 'analytics' | 'schedule' | 'statistics' | 'videos'): void {
     this.activeTab = tab;
   }
 
@@ -188,7 +198,7 @@ export class TeamDetailComponent implements OnInit {
   }
 
   deletePlayer(player: Player): void {
-    if (confirm(`Are you sure you want to delete ${player.name}? This action cannot be undone.`)) {
+    if (confirm(`Are you sure you want to delete ${this.getPlayerDisplayName(player)}? This action cannot be undone.`)) {
       this.playerService.deletePlayer(player.id).subscribe({
         next: () => {
           console.log('Player deleted successfully');
@@ -277,6 +287,11 @@ export class TeamDetailComponent implements OnInit {
   }
 
   // Helper methods for players
+  getPlayerDisplayName(player: Player): string {
+    if (player.name) return player.name;
+    return `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'Unknown Player';
+  }
+
   getPositionDisplay(position: string): string {
     return this.playerService.getPositionDisplayName(position);
   }
@@ -287,6 +302,193 @@ export class TeamDetailComponent implements OnInit {
 
   formatHeight(height: number): string {
     return this.playerService.formatHeight(height);
+  }
+
+  // Bulk import methods
+  openBulkImportModal(): void {
+    this.showBulkImportModal = true;
+    this.bulkImportMethod = 'text';
+    this.bulkImportText = '';
+    this.csvFileName = '';
+    this.parsedPlayers = [];
+    this.bulkImportErrors = [];
+  }
+
+  closeBulkImportModal(): void {
+    this.showBulkImportModal = false;
+    this.bulkImportText = '';
+    this.csvFileName = '';
+    this.parsedPlayers = [];
+    this.bulkImportErrors = [];
+  }
+
+  canParseBulkData(): boolean {
+    return (this.bulkImportMethod === 'text' && this.bulkImportText.trim().length > 0) ||
+           (this.bulkImportMethod === 'csv' && this.csvFileName.length > 0);
+  }
+
+  onCsvFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.csvFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.bulkImportText = e.target?.result as string;
+      };
+      reader.readAsText(file);
+    }
+  }
+
+  parseBulkImportData(): void {
+    this.parsedPlayers = [];
+    this.bulkImportErrors = [];
+
+    if (!this.bulkImportText.trim()) {
+      this.bulkImportErrors.push('No data to parse');
+      return;
+    }
+
+    const lines = this.bulkImportText.trim().split('\n');
+    let isFirstLine = true;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      try {
+        let playerData: any = {};
+
+        if (this.bulkImportMethod === 'csv') {
+          // Handle CSV format
+          const values = this.parseCSVLine(line);
+          
+          if (isFirstLine && this.looksLikeHeader(values)) {
+            isFirstLine = false;
+            continue; // Skip header row
+          }
+          
+          // Map CSV values to player fields
+          playerData = {
+            first_name: values[0]?.trim() || '',
+            jersey_number: values[1]?.trim() ? parseInt(values[1].trim()) : null,
+            position: values[2]?.trim() || '',
+            year: values[3]?.trim() || '',
+            height: values[4]?.trim() ? parseFloat(values[4].trim()) : null,
+            reach: values[5]?.trim() ? parseFloat(values[5].trim()) : null,
+            dominant_hand: values[6]?.trim() || '',
+            contact_info: values[7]?.trim() || '',
+            notes: values[8]?.trim() || ''
+          };
+        } else {
+          // Handle text format (comma-separated)
+          const parts = line.split(',').map(p => p.trim());
+          
+          if (parts.length === 0 || !parts[0]) {
+            this.bulkImportErrors.push(`Line ${i + 1}: Missing player name`);
+            continue;
+          }
+
+          // Parse name (could be "First Last" or just "First")
+          const nameParts = parts[0].trim().split(' ');
+          playerData.first_name = nameParts[0];
+          if (nameParts.length > 1) {
+            playerData.last_name = nameParts.slice(1).join(' ');
+          }
+
+          // Parse other fields
+          if (parts[1]) playerData.jersey_number = parseInt(parts[1]);
+          if (parts[2]) playerData.position = parts[2];
+          if (parts[3]) playerData.year = parts[3];
+          if (parts[4]) playerData.height = parseFloat(parts[4]);
+          if (parts[5]) playerData.reach = parseFloat(parts[5]);
+          if (parts[6]) playerData.dominant_hand = parts[6];
+          if (parts[7]) playerData.contact_info = parts[7];
+          if (parts[8]) playerData.notes = parts[8];
+        }
+
+        // Validate required fields
+        if (!playerData.first_name) {
+          this.bulkImportErrors.push(`Line ${i + 1}: Missing player name`);
+          continue;
+        }
+
+        // Validate optional fields
+        if (playerData.jersey_number && (playerData.jersey_number < 0 || playerData.jersey_number > 99)) {
+          this.bulkImportErrors.push(`Line ${i + 1}: Jersey number must be between 0-99`);
+          continue;
+        }
+
+        if (playerData.position && !['setter', 'outside_hitter', 'middle_blocker', 'opposite', 'libero', 'defensive_specialist'].includes(playerData.position)) {
+          this.bulkImportErrors.push(`Line ${i + 1}: Invalid position "${playerData.position}"`);
+          continue;
+        }
+
+        if (playerData.year && !['freshman', 'sophomore', 'junior', 'senior', 'graduate'].includes(playerData.year)) {
+          this.bulkImportErrors.push(`Line ${i + 1}: Invalid year "${playerData.year}"`);
+          continue;
+        }
+
+        this.parsedPlayers.push(playerData);
+
+      } catch (error) {
+        this.bulkImportErrors.push(`Line ${i + 1}: Parse error - ${error}`);
+      }
+
+      isFirstLine = false;
+    }
+
+    if (this.parsedPlayers.length === 0 && this.bulkImportErrors.length === 0) {
+      this.bulkImportErrors.push('No valid player data found');
+    }
+  }
+
+  private parseCSVLine(line: string): string[] {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  private looksLikeHeader(values: string[]): boolean {
+    const firstValue = values[0]?.toLowerCase().trim();
+    return firstValue === 'name' || firstValue === 'first_name' || firstValue === 'player_name';
+  }
+
+  submitBulkImport(): void {
+    if (this.parsedPlayers.length === 0 || !this.team) {
+      return;
+    }
+
+    this.submittingBulkImport = true;
+
+    this.playerService.bulkImportPlayers(this.team.id!, this.parsedPlayers).subscribe({
+      next: (response: any) => {
+        console.log('Bulk import successful:', response);
+        alert(`Successfully imported ${response.summary.successful} players!`);
+        this.closeBulkImportModal();
+        if (this.team) {
+          this.loadTeamPlayers(this.team.id!); // Refresh players list
+        }
+      },
+      error: (error: any) => {
+        console.error('Bulk import error:', error);
+        alert(`Failed to import players: ${error.error?.error || error.message}`);
+        this.submittingBulkImport = false;
+      }
+    });
   }
 
   inviteUser(): void {
@@ -486,12 +688,6 @@ export class TeamDetailComponent implements OnInit {
     console.log('Saving role for member:', member); // Debug log
     console.log('Team ID:', this.team.id, 'Member ID:', member.id, 'New Role:', member.newRole); // Debug log
 
-    // Check if this is promoting someone to head coach
-    if (member.newRole === 'head_coach' && member.role !== 'head_coach') {
-      this.handleHeadCoachTransfer(member);
-      return;
-    }
-
     this.savingRole = true;
     this.clearMessages();
 
@@ -513,69 +709,6 @@ export class TeamDetailComponent implements OnInit {
         this.autoHideMessage();
       }
     });
-  }
-
-  private handleHeadCoachTransfer(member: TeamMember & { editingRole?: boolean; newRole?: string }): void {
-    const memberName = `${member.first_name} ${member.last_name}` || member.email || 'this member';
-    const confirmMessage = `Are you sure you want to transfer head coach ownership to ${memberName}?\n\n` +
-                          `This will:\n` +
-                          `• Make ${memberName} the new head coach and team owner\n` +
-                          `• Change your role to assistant coach\n` +
-                          `• Give them full control over the team\n\n` +
-                          `This action cannot be undone.`;
-
-    if (confirm(confirmMessage)) {
-      this.savingRole = true;
-      this.clearMessages();
-
-      if (!this.team?.id || !member.id) return;
-
-      this.teamMemberService.updateMemberRole(this.team.id, member.id, member.newRole!, true).subscribe({
-        next: (response) => {
-          console.log('Head coach transfer response:', response);
-          
-          if (response.ownershipTransferred) {
-            // Update the current member's role
-            member.role = 'head_coach' as any;
-            member.editingRole = false;
-            member.newRole = undefined;
-            this.editingMemberId = null;
-            
-            // Update current user's role in the team members list
-            if (this.team && this.team.members) {
-              // Get current user ID from auth service
-              this.authService.getCurrentUser().subscribe(currentUser => {
-                const currentMember = this.team!.members!.find(m => m.user_id === currentUser.id);
-                if (currentMember) {
-                  currentMember.role = 'assistant_coach';
-                }
-              });
-            }
-            
-            // Update team user role
-            if (this.team) {
-              this.team.userRole = 'assistant_coach';
-            }
-            
-            this.successMessage = `Head coach transferred successfully. ${memberName} is now the team owner.`;
-          } else {
-            this.successMessage = response.message;
-          }
-          
-          this.savingRole = false;
-          this.autoHideMessage();
-        },
-        error: (error) => {
-          console.error('Error transferring head coach:', error);
-          this.errorMessage = error.error?.error || 'Failed to transfer head coach ownership';
-          this.savingRole = false;
-          this.autoHideMessage();
-        }
-      });
-    } else {
-      // User cancelled, reset the role selection
-      member.newRole = member.role;
-    }
   }
 
   confirmRemoveMember(member: TeamMember): void {

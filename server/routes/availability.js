@@ -36,7 +36,7 @@ router.get('/event/:eventId', authMiddleware, async (req, res) => {
         p.last_name,
         p.jersey_number
       FROM availability av
-      JOIN players p ON av.player_id = p.id
+      JOIN player p ON av.player_id = p.id
       WHERE av.event_id = $1
       ORDER BY p.last_name, p.first_name
     `, [eventId]);
@@ -55,7 +55,7 @@ router.get('/player/:playerId', authMiddleware, async (req, res) => {
 
     // Verify user has access to this player's team OR is the player themselves
     const accessCheck = await pool.query(`
-      SELECT p.id, p.user_id FROM players p
+      SELECT p.id, p.user_id FROM player p
       JOIN team_users tu ON p.team_id = tu.team_id
       WHERE p.id = $1 AND (tu.user_id = $2 OR p.user_id = $2)
     `, [playerId, req.user.id]);
@@ -79,7 +79,7 @@ router.get('/player/:playerId', authMiddleware, async (req, res) => {
         av.notes,
         av.updated_at
       FROM schedule_events se
-      JOIN players p ON se.team_id = p.team_id
+      JOIN player p ON se.team_id = p.team_id
       LEFT JOIN availability av ON se.id = av.event_id AND av.player_id = p.id
       WHERE p.id = $1 AND se.event_date >= CURRENT_DATE
       ORDER BY se.event_date, se.start_time
@@ -113,7 +113,7 @@ router.post('/update', authMiddleware, [
         p.id, 
         p.user_id,
         tu.role
-      FROM players p
+      FROM player p
       JOIN team_users tu ON p.team_id = tu.team_id
       JOIN schedule_events se ON se.team_id = p.team_id
       WHERE p.id = $1 AND se.id = $2 AND 
@@ -176,7 +176,7 @@ router.post('/bulk-update', authMiddleware, [
         p.id, 
         p.user_id,
         tu.role
-      FROM players p
+      FROM player p
       JOIN team_users tu ON p.team_id = tu.team_id
       WHERE p.id = $1 AND (tu.user_id = $2 OR p.user_id = $2)
     `, [playerId, req.user.id]);
@@ -261,7 +261,7 @@ router.get('/summary/:eventId', authMiddleware, async (req, res) => {
         COALESCE(av.available, true) as available,
         av.notes,
         av.updated_at
-      FROM players p
+      FROM player p
       JOIN schedule_events se ON p.team_id = se.team_id
       LEFT JOIN availability av ON p.id = av.player_id AND av.event_id = se.id
       WHERE se.id = $1 AND p.status = 'active'

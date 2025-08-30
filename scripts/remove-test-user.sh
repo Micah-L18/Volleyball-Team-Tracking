@@ -6,7 +6,7 @@
 echo "🗑️  Removing coachmicahl@yahoo.com from team 4..."
 
 # Remove the user from team 4
-psql -d coach_app -c "DELETE FROM team_users WHERE team_id = 4 AND user_id = (SELECT id FROM users WHERE email = 'coachmicahl@yahoo.com');"
+psql -d coach_app -c "DELETE FROM team_users WHERE team_id = 5 AND user_id = (SELECT id FROM users WHERE email = 'coachmicahl@yahoo.com');"
 
 if [ $? -eq 0 ]; then
     echo "✅ User removed successfully!"

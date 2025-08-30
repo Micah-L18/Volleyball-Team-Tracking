@@ -79,6 +79,18 @@
           Analytics
         </button>
         <button
+          (click)="setActiveTab('statistics')"
+          [class]="activeTab === 'statistics' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="py-2 px-1 border-b-2 font-medium text-sm">
+          Statistics
+        </button>
+        <button
+          (click)="setActiveTab('videos')"
+          [class]="activeTab === 'videos' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="py-2 px-1 border-b-2 font-medium text-sm">
+          Videos
+        </button>
+        <button
           (click)="setActiveTab('schedule')"
           [class]="activeTab === 'schedule' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
           class="py-2 px-1 border-b-2 font-medium text-sm">
@@ -381,12 +393,18 @@
       <!-- Add Player Button -->
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-xl font-semibold">Team Players</h2>
-        <button
-          *ngIf="canManageTeam()"
-          (click)="openPlayerModal()"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          Add Player
-        </button>
+        <div *ngIf="canManageTeam()" class="flex space-x-3">
+          <button
+            (click)="openBulkImportModal()"
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            Bulk Import
+          </button>
+          <button
+            (click)="openPlayerModal()"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            Add Player
+          </button>
+        </div>
       </div>
 
       <!-- Players Grid -->
@@ -507,6 +525,20 @@
     </div>
   </div>
 
+  <!-- Statistics Tab -->
+  <div *ngIf="activeTab === 'statistics'">
+    <div *ngIf="team && team.id">
+      <app-statistics-dashboard [teamId]="team.id"></app-statistics-dashboard>
+    </div>
+  </div>
+
+  <!-- Videos Tab -->
+  <div *ngIf="activeTab === 'videos'">
+    <div *ngIf="team && team.id">
+      <app-video-gallery></app-video-gallery>
+    </div>
+  </div>
+
   <!-- Schedule Tab -->
   <div *ngIf="activeTab === 'schedule'">
     <div *ngIf="team">
@@ -587,8 +619,9 @@
             <input
               type="number"
               formControlName="height"
-              placeholder="e.g., 72"
+              placeholder="Default: 70 inches (5'10&quot;)"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Leave blank to use default height of 70 inches</p>
           </div>
 
           <!-- Reach -->
@@ -597,8 +630,9 @@
             <input
               type="number"
               formControlName="reach"
-              placeholder="e.g., 96"
+              placeholder="Default: 80 inches (6'8&quot;)"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Leave blank to use default reach of 80 inches</p>
           </div>
 
           <!-- Dominant Hand -->
@@ -649,6 +683,151 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Import Modal -->
+<div *ngIf="showBulkImportModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+  <div class="relative bg-white rounded-lg shadow-xl mx-4 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div class="p-6">
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Bulk Import Players</h3>
+        <button
+          type="button"
+          (click)="closeBulkImportModal()"
+          class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Import Instructions -->
+      <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="font-medium text-blue-900 mb-2">How to use Bulk Import:</h4>
+        <ul class="text-sm text-blue-800 space-y-1">
+          <li>• Enter player data in the text area below, one player per line</li>
+          <li>• Format: Name, Jersey#, Position, Year, Height(inches), Reach(inches), Hand, Contact, Notes</li>
+          <li>• Example: "John Smith, 12, outside_hitter, junior, 72, 90, Right, john@email.com, Team captain"</li>
+          <li>• Fields after Name are optional. Height defaults to 70", Reach defaults to 80"</li>
+          <li>• Use positions: setter, outside_hitter, middle_blocker, opposite, libero, defensive_specialist</li>
+          <li>• Use years: freshman, sophomore, junior, senior, graduate</li>
+        </ul>
+      </div>
+
+      <!-- Import Methods -->
+      <div class="mb-4">
+        <div class="flex space-x-4 mb-4">
+          <button
+            (click)="bulkImportMethod = 'text'"
+            [class]="bulkImportMethod === 'text' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+            class="px-4 py-2 rounded-md font-medium transition-colors">
+            Text Entry
+          </button>
+          <button
+            (click)="bulkImportMethod = 'csv'"
+            [class]="bulkImportMethod === 'csv' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+            class="px-4 py-2 rounded-md font-medium transition-colors">
+            CSV Upload
+          </button>
+        </div>
+      </div>
+
+      <!-- Text Entry Method -->
+      <div *ngIf="bulkImportMethod === 'text'" class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Player Data (one per line)</label>
+        <textarea
+          [(ngModel)]="bulkImportText"
+          rows="12"
+          placeholder="Example:&#10;Emma Rodriguez, 1, setter, senior, 68, 85, Right, emma@email.com, Team captain&#10;Maya Chen, 2, outside_hitter, junior, 70, 88, Left, maya@email.com&#10;Sofia Williams, 3, middle_blocker, sophomore, 73, 92, Right, sofia@email.com"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm">
+        </textarea>
+      </div>
+
+      <!-- CSV Upload Method -->
+      <div *ngIf="bulkImportMethod === 'csv'" class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <input
+            type="file"
+            accept=".csv"
+            (change)="onCsvFileSelected($event)"
+            class="hidden"
+            #csvFileInput>
+          <button
+            (click)="csvFileInput.click()"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            Select CSV File
+          </button>
+          <p class="text-sm text-gray-500 mt-2">
+            CSV should have headers: name, jersey_number, position, year, height, reach, dominant_hand, contact_info, notes
+          </p>
+        </div>
+        <div *ngIf="csvFileName" class="mt-2 text-sm text-green-600">
+          Selected: {{ csvFileName }}
+        </div>
+      </div>
+
+      <!-- Preview Section -->
+      <div *ngIf="parsedPlayers.length > 0" class="mb-6">
+        <h4 class="font-medium text-gray-900 mb-3">Preview ({{ parsedPlayers.length }} players)</h4>
+        <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-md">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-2 text-left">Name</th>
+                <th class="px-3 py-2 text-left">#</th>
+                <th class="px-3 py-2 text-left">Position</th>
+                <th class="px-3 py-2 text-left">Year</th>
+                <th class="px-3 py-2 text-left">Height</th>
+                <th class="px-3 py-2 text-left">Reach</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let player of parsedPlayers; let i = index" 
+                  [class]="i % 2 === 0 ? 'bg-white' : 'bg-gray-50'">
+                <td class="px-3 py-2">{{ player.first_name }} {{ player.last_name || '' }}</td>
+                <td class="px-3 py-2">{{ player.jersey_number || '-' }}</td>
+                <td class="px-3 py-2">{{ player.position || '-' }}</td>
+                <td class="px-3 py-2">{{ player.year || '-' }}</td>
+                <td class="px-3 py-2">{{ player.height || 70 }}"</td>
+                <td class="px-3 py-2">{{ player.reach || 80 }}"</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Error Messages -->
+      <div *ngIf="bulkImportErrors.length > 0" class="mb-4 p-4 bg-red-50 rounded-lg">
+        <h4 class="font-medium text-red-900 mb-2">Import Errors:</h4>
+        <ul class="text-sm text-red-800 space-y-1">
+          <li *ngFor="let error of bulkImportErrors">• {{ error }}</li>
+        </ul>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex space-x-3">
+        <button
+          (click)="parseBulkImportData()"
+          [disabled]="!canParseBulkData()"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          Parse Data
+        </button>
+        <button
+          (click)="submitBulkImport()"
+          [disabled]="parsedPlayers.length === 0 || submittingBulkImport"
+          class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ submittingBulkImport ? 'Importing...' : 'Import Players' }}
+        </button>
+        <button
+          (click)="closeBulkImportModal()"
+          class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+          Cancel
+        </button>
+      </div>
     </div>
   </div>
 </div>

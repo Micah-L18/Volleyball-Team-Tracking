@@ -1,0 +1,2147 @@
+<div class="statistics-dashboard">
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.5rem; font-weight: bold; color: #111827; margin: 0;">Statistics Dashboard</h2>
+    <div class="flex gap-2">
+      <button 
+        (click)="openAddForm()"
+        class="btn btn-primary"
+      >
+        Add Single Stat
+      </button>
+      <button 
+        (click)="openBulkAddForm()"
+        class="btn btn-primary"
+        style="background: #059669;"
+      >
+        Add Multiple Stats
+      </button>
+      <button 
+        (click)="openImportForm()"
+        class="btn btn-success"
+      >
+        Import Data
+      </button>
+      <button 
+        (click)="exportStatistics()"
+        class="btn btn-secondary"
+      >
+        Export CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading">
+    <!-- Tabs -->
+    <div class="card">
+      <div class="tabs">
+        <button
+          (click)="activeTab = 'team'; loadTeamStatistics()"
+          [class]="'tab-button' + (activeTab === 'team' ? ' active' : '')"
+        >
+          Team Statistics
+        </button>
+        <button
+          (click)="activeTab = 'players'"
+          [class]="'tab-button' + (activeTab === 'players' ? ' active' : '')"
+        >
+          Individual Players
+        </button>
+        <button
+          (click)="activeTab = 'allPlayers'; loadAllPlayersStats()"
+          [class]="'tab-button' + (activeTab === 'allPlayers' ? ' active' : '')"
+        >
+          All Players Comparison
+        </button>
+        <button
+          (click)="activeTab = 'analysis'; loadStatisticalAnalysis()"
+          [class]="'tab-button' + (activeTab === 'analysis' ? ' active' : '')"
+        >
+          Statistical Analysis
+        </button>
+      </div>
+
+      <!-- Team Statistics Tab -->
+      <div *ngIf="activeTab === 'team'" class="tab-content">
+        <div class="stats-header">
+          <h3>{{ team?.name }} Team Statistics</h3>
+          <div class="view-controls">
+            <button 
+              (click)="showBasicFilters = true"
+              class="filter-btn"
+              title="Open Filters"
+            >
+              🔍 Filters
+            </button>
+            <!-- TODO: FUTURE ENHANCEMENT - Card View -->
+            <!-- 
+            <button 
+              (click)="teamViewMode = 'cards'"
+              [class]="'view-btn' + (teamViewMode === 'cards' ? ' active' : '')"
+            >
+              <i class="icon-grid"></i> Cards
+            </button>
+            -->
+            <button 
+              (click)="teamViewMode = 'table'"
+              [class]="'view-btn' + (teamViewMode === 'table' ? ' active' : '')"
+            >
+              <i class="icon-list"></i> Table
+            </button>
+            <button 
+              (click)="teamViewMode = 'events'"
+              [class]="'view-btn' + (teamViewMode === 'events' ? ' active' : '')"
+            >
+              <i class="icon-calendar"></i> By Event
+            </button>
+          </div>
+        </div>
+        
+        <div *ngIf="teamStatistics.length === 0" class="empty-state">
+          <div class="empty-icon">📊</div>
+          <h4>No team statistics found</h4>
+          <p>Add some statistics or adjust your filters to see data.</p>
+        </div>
+
+        <!-- TODO: FUTURE ENHANCEMENT - Team Cards View -->
+        <!-- 
+        <div *ngIf="teamStatistics.length > 0 && teamViewMode === 'cards'" class="stats-cards-view">
+--
+            <div class="summary-section">
+            <h4>Performance Overview</h4>
+            <div class="summary-grid">
+              <div *ngFor="let summary of getTeamSummaryStats()" class="summary-metric-card">
+                <div class="metric-icon">{{ getStatIcon(summary.category) }}</div>
+                <div class="metric-content">
+                  <div class="metric-value">{{ summary.value }}</div>
+                  <div class="metric-label">{{ summary.label }}</div>
+                  <div class="metric-change" [class]="summary.trend">
+                    {{ summary.change }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+           Detailed Stats by Category -->
+          <div class="categories-section">
+            <div *ngFor="let category of categories" class="category-section">
+              <div *ngIf="getGroupedStats('team', category.name).length > 0">
+                <div class="category-header">
+                  <h4>{{ category.label }}</h4>
+                  <span class="stat-count">{{ getGroupedStats('team', category.name).length }} entries</span>
+                </div>
+                <div class="stats-grid">
+                  <div 
+                    *ngFor="let stat of getGroupedStats('team', category.name)" 
+                    class="enhanced-stat-card"
+                  >
+                    <div class="stat-header">
+                      <div class="stat-label">{{ getStatDisplayName(stat.stat_name, stat.stat_category) }}</div>
+                      <div class="stat-actions">
+                        <button class="action-btn edit" (click)="editStat(stat)" title="Edit">✏️</button>
+                        <button class="action-btn delete" (click)="deleteStat(stat)" title="Delete">🗑️</button>
+                      </div>
+                    </div>
+                    <div class="stat-value">{{ formatStatValue(stat.stat_value, stat.stat_name) }}</div>
+                    <div class="stat-details">
+                      <div class="stat-meta">
+                        <i class="icon-calendar"></i>
+                        {{ stat.stat_date | date:'MMM d, y' }}
+                      </div>
+                      <div *ngIf="stat.opponent" class="stat-meta">
+                        <i class="icon-versus"></i>
+                        vs {{ stat.opponent }}
+                      </div>
+                      <div *ngIf="stat.game_type" class="stat-meta game-type">
+                        <span class="game-type-badge" [class]="stat.game_type">{{ formatGameType(stat.game_type) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+
+        <!-- Table View -->
+        <div *ngIf="activeTab === 'team' && teamStatistics.length > 0 && teamViewMode === 'table'" class="stats-table-view">
+          <div class="table-container">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th (click)="sortBy('stat_date')" class="sortable">
+                    Date
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_date'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('stat_category')" class="sortable">
+                    Category
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_category'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('stat_name')" class="sortable">
+                    Statistic
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_name'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('stat_value')" class="sortable">
+                    Value
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_value'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th>Game Type</th>
+                  <th>Opponent</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let stat of getSortedTeamStats()" class="stat-row">
+                  <td>{{ stat.stat_date | date:'MMM d, y' }}</td>
+                  <td>
+                    <span class="category-badge" [class]="stat.stat_category">
+                      {{ getCategoryLabel(stat.stat_category) }}
+                    </span>
+                  </td>
+                  <td class="stat-name">{{ getStatDisplayName(stat.stat_name, stat.stat_category) }}</td>
+                  <td class="stat-value-cell">
+                    <span class="value-display">{{ formatStatValue(stat.stat_value, stat.stat_name) }}</span>
+                  </td>
+                  <td>
+                    <span *ngIf="stat.game_type" class="game-type-badge" [class]="stat.game_type">
+                      {{ formatGameType(stat.game_type) }}
+                    </span>
+                  </td>
+                  <td>{{ stat.opponent || '-' }}</td>
+                  <td class="actions-cell">
+                    <button class="action-btn edit" (click)="editStat(stat)" title="Edit">✏️</button>
+                    <button class="action-btn delete" (click)="deleteStat(stat)" title="Delete">🗑️</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Events View -->
+        <div *ngIf="activeTab === 'team' && teamStatistics.length > 0 && teamViewMode === 'events'" class="stats-events-view">
+          <div *ngFor="let eventGroup of getStatsByEvent('team')" class="event-group">
+            <div class="event-header">
+              <div class="event-info">
+                <h4>{{ eventGroup.eventDate | date:'EEEE, MMM d, y' }}</h4>
+                <p class="event-details">
+                  <span *ngIf="eventGroup.title">{{ eventGroup.title }}</span>
+                  <span *ngIf="eventGroup.opponent" class="opponent">vs {{ eventGroup.opponent }}</span>
+                  <span *ngIf="eventGroup.gameType" class="game-type-badge" [class]="eventGroup.gameType">
+                    {{ formatGameType(eventGroup.gameType) }}
+                  </span>
+                </p>
+              </div>
+              <div class="event-stats-count">
+                {{ eventGroup.stats.length }} stats
+              </div>
+            </div>
+            <div class="event-stats-grid">
+              <div *ngFor="let stat of eventGroup.stats" class="event-stat-card">
+                <div class="stat-category">{{ getCategoryLabel(stat.stat_category) }}</div>
+                <div class="stat-name">{{ getStatDisplayName(stat.stat_name, stat.stat_category) }}</div>
+                <div class="stat-value">{{ formatStatValue(stat.stat_value, stat.stat_name) }}</div>
+                <div class="stat-actions">
+                  <button class="action-btn edit" (click)="editStat(stat)" title="Edit">✏️</button>
+                  <button class="action-btn delete" (click)="deleteStat(stat)" title="Delete">🗑️</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Statistics Tab -->
+      <div *ngIf="activeTab === 'players'" class="tab-content">
+        <!-- Player Selection -->
+        <div class="player-selection-section">
+          <div class="form-group">
+            <label>Select Player</label>
+            <select 
+              [(ngModel)]="selectedPlayerId"
+              (ngModelChange)="onPlayerSelect($event)"
+              class="player-select"
+            >
+              <option value="">Choose a player...</option>
+              <option *ngFor="let player of players" [value]="player.id">
+                {{ player.name || (player.first_name + (player.last_name ? ' ' + player.last_name : '')) }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div *ngIf="selectedPlayerId">
+          <div class="stats-header">
+            <h3>{{ getSelectedPlayerName() }} Statistics</h3>
+            <div class="view-controls">
+              <button 
+                (click)="showBasicFilters = true"
+                class="filter-btn"
+                title="Open Filters"
+              >
+                🔍 Filters
+              </button>
+              <!-- TODO: FUTURE ENHANCEMENT - Player Card View -->
+              <!--
+              <button 
+                (click)="playerViewMode = 'cards'"
+                [class]="'view-btn' + (playerViewMode === 'cards' ? ' active' : '')"
+              >
+                <i class="icon-grid"></i> Cards
+              </button>
+              -->
+              <button 
+                (click)="playerViewMode = 'table'"
+                [class]="'view-btn' + (playerViewMode === 'table' ? ' active' : '')"
+              >
+                <i class="icon-list"></i> Table
+              </button>
+              <button 
+                (click)="playerViewMode = 'events'"
+                [class]="'view-btn' + (playerViewMode === 'events' ? ' active' : '')"
+              >
+                <i class="icon-calendar"></i> By Event
+              </button>
+            </div>
+          </div>
+
+          <!-- Player Summary -->
+          <div *ngIf="selectedPlayerSummary.length > 0" class="player-summary-section">
+            <h4>Performance Overview</h4>
+            <div class="summary-grid">
+              <div 
+                *ngFor="let summary of selectedPlayerSummary" 
+                class="summary-metric-card"
+              >
+                <div class="metric-icon">{{ getStatIcon(summary.stat_category) }}</div>
+                <div class="metric-content">
+                  <div class="metric-label">{{ getStatDisplayName(summary.stat_name, summary.stat_category) }}</div>
+                  <div class="metric-value">{{ formatStatValue(summary.average_value, summary.stat_name) }}</div>
+                  <div class="metric-details">
+                    <span>Total: {{ formatStatValue(summary.total_value, summary.stat_name) }}</span>
+                    <span>{{ summary.total_entries }} games</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="playerStatistics.length === 0" class="empty-state">
+            <div class="empty-icon">📊</div>
+            <h4>No statistics found</h4>
+            <p>No statistics found for this player. Add some statistics or adjust your filters.</p>
+          </div>
+
+          <!-- TODO: FUTURE ENHANCEMENT - Player Cards View -->
+          <!--
+          <div *ngIf="playerStatistics.length > 0 && playerViewMode === 'cards'" class="stats-cards-view">
+            <div class="categories-section">
+              <div *ngFor="let category of categories" class="category-section">
+                <div *ngIf="getGroupedStats('player', category.name).length > 0">
+                  <div class="category-header">
+                    <h4>{{ category.label }}</h4>
+                    <span class="stat-count">{{ getGroupedStats('player', category.name).length }} entries</span>
+                  </div>
+                  <div class="stats-grid">
+                    <div 
+                      *ngFor="let stat of getGroupedStats('player', category.name)" 
+                      class="enhanced-stat-card"
+                    >
+                      <div class="stat-header">
+                        <div class="stat-label">{{ getStatDisplayName(stat.stat_name, stat.stat_category) }}</div>
+                        <div class="stat-actions">
+                          <button class="action-btn edit" (click)="editStat(stat)" title="Edit">✏️</button>
+                          <button class="action-btn delete" (click)="deleteStat(stat)" title="Delete">🗑️</button>
+                        </div>
+                      </div>
+                      <div class="stat-value">{{ formatStatValue(stat.stat_value, stat.stat_name) }}</div>
+                      <div class="stat-details">
+                        <div class="stat-meta">
+                          <i class="icon-calendar"></i>
+                          {{ stat.stat_date | date:'MMM d, y' }}
+                        </div>
+                        <div *ngIf="stat.opponent" class="stat-meta">
+                          <i class="icon-versus"></i>
+                          vs {{ stat.opponent }}
+                        </div>
+                        <div *ngIf="stat.game_type" class="stat-meta game-type">
+                          <span class="game-type-badge" [class]="stat.game_type">{{ formatGameType(stat.game_type) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          -->
+
+          <!-- Table View -->
+          <div *ngIf="activeTab === 'players' && playerStatistics.length > 0 && playerViewMode === 'table'" class="stats-table-view">
+            <div class="table-container">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th (click)="sortBy('stat_date')" class="sortable">
+                      Date
+                      <span class="sort-indicator" *ngIf="sortField === 'stat_date'">
+                        {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
+                    <th (click)="sortBy('stat_category')" class="sortable">
+                      Category
+                      <span class="sort-indicator" *ngIf="sortField === 'stat_category'">
+                        {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
+                    <th (click)="sortBy('stat_name')" class="sortable">
+                      Statistic
+                      <span class="sort-indicator" *ngIf="sortField === 'stat_name'">
+                        {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
+                    <th (click)="sortBy('stat_value')" class="sortable">
+                      Value
+                      <span class="sort-indicator" *ngIf="sortField === 'stat_value'">
+                        {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                      </span>
+                    </th>
+                    <th>Game Type</th>
+                    <th>Opponent</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let stat of getSortedPlayerStats()" class="stat-row">
+                    <td>{{ stat.stat_date | date:'MMM d, y' }}</td>
+                    <td>
+                      <span class="category-badge" [class]="stat.stat_category">
+                        {{ getCategoryLabel(stat.stat_category) }}
+                      </span>
+                    </td>
+                    <td class="stat-name">{{ getStatDisplayName(stat.stat_name, stat.stat_category) }}</td>
+                    <td class="stat-value-cell">
+                      <span class="value-display">{{ formatStatValue(stat.stat_value, stat.stat_name) }}</span>
+                    </td>
+                    <td>
+                      <span *ngIf="stat.game_type" class="game-type-badge" [class]="stat.game_type">
+                        {{ stat.game_type }}
+                      </span>
+                    </td>
+                    <td>{{ stat.opponent || '-' }}</td>
+                    <td class="actions-cell">
+                      <button class="action-btn edit" (click)="editStat(stat)" title="Edit">✏️</button>
+                      <button class="action-btn delete" (click)="deleteStat(stat)" title="Delete">🗑️</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Events View -->
+          <div *ngIf="activeTab === 'players' && playerStatistics.length > 0 && playerViewMode === 'events'" class="stats-events-view">
+            <div *ngFor="let eventGroup of getStatsByEvent('player')" class="event-group">
+              <div class="event-header">
+                <div class="event-info">
+                  <h4>{{ eventGroup.eventDate | date:'EEEE, MMM d, y' }}</h4>
+                  <p class="event-details">
+                    <span *ngIf="eventGroup.title">{{ eventGroup.title }}</span>
+                    <span *ngIf="eventGroup.opponent" class="opponent">vs {{ eventGroup.opponent }}</span>
+                    <span *ngIf="eventGroup.gameType" class="game-type-badge" [class]="eventGroup.gameType">
+                      {{ eventGroup.gameType }}
+                    </span>
+                  </p>
+                </div>
+                <div class="event-stats-count">
+                  {{ eventGroup.stats.length }} stats
+                </div>
+              </div>
+              <div class="event-stats-grid">
+                <div *ngFor="let stat of eventGroup.stats" class="event-stat-card">
+                  <div class="stat-category">{{ getCategoryLabel(stat.stat_category) }}</div>
+                  <div class="stat-name">{{ getStatDisplayName(stat.stat_name, stat.stat_category) }}</div>
+                  <div class="stat-value">{{ formatStatValue(stat.stat_value, stat.stat_name) }}</div>
+                  <div class="stat-actions">
+                    <button class="action-btn edit" (click)="editStat(stat)" title="Edit">✏️</button>
+                    <button class="action-btn delete" (click)="deleteStat(stat)" title="Delete">🗑️</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Players Statistics Tab -->
+      <div *ngIf="activeTab === 'allPlayers'" class="tab-content">
+        <div class="stats-header">
+          <h3>All Players Statistics Comparison</h3>
+          <div class="export-actions">
+            <button 
+              (click)="exportAllPlayersStats()"
+              class="btn btn-secondary"
+            >
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Advanced Filters -->
+        <div class="advanced-filters-section">
+          <h4>Advanced Filters</h4>
+          <div class="filters-grid">
+            <div class="filter-row">
+              <div class="form-group">
+                <label>Player</label>
+                <select 
+                  [(ngModel)]="advancedFilters.player"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                >
+                  <option value="">All Players</option>
+                  <option *ngFor="let player of players" [value]="player.id">
+                    {{ player.name }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Category</label>
+                <select 
+                  [(ngModel)]="advancedFilters.category"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                >
+                  <option value="">All Categories</option>
+                  <option *ngFor="let category of categories" [value]="category.name">
+                    {{ category.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Statistic</label>
+                <select 
+                  [(ngModel)]="advancedFilters.statistic"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                >
+                  <option value="">All Statistics</option>
+                  <option *ngFor="let stat of getAvailableStats()" [value]="stat.name">
+                    {{ stat.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Game Type</label>
+                <select 
+                  [(ngModel)]="advancedFilters.gameType"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                >
+                  <option value="">All Types</option>
+                  <option value="practice">Practice</option>
+                  <option value="scrimmage">Scrimmage</option>
+                  <option value="game">Game</option>
+                  <option value="tournament">Tournament</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Position</label>
+                <select 
+                  [(ngModel)]="advancedFilters.position"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                >
+                  <option value="">All Positions</option>
+                  <option value="setter">Setter</option>
+                  <option value="outside_hitter">Outside Hitter</option>
+                  <option value="middle_blocker">Middle Blocker</option>
+                  <option value="opposite">Opposite</option>
+                  <option value="libero">Libero</option>
+                  <option value="defensive_specialist">Defensive Specialist</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Event</label>
+                <select 
+                  [(ngModel)]="advancedFilters.event"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                >
+                  <option value="">All Events</option>
+                  <option *ngFor="let event of availableEvents" [value]="event.id">
+                    {{ event.title || (event.event_type + ' vs ' + event.opponent) }}
+                    ({{ event.event_date | date:'MMM d, y' }})
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-row">
+              <div class="form-group">
+                <label>Opponent</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="advancedFilters.opponent"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                  placeholder="Search opponent..."
+                />
+              </div>
+              <div class="form-group">
+                <label>Start Date</label>
+                <input 
+                  type="date" 
+                  [(ngModel)]="advancedFilters.startDate"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                />
+              </div>
+              <div class="form-group">
+                <label>End Date</label>
+                <input 
+                  type="date" 
+                  [(ngModel)]="advancedFilters.endDate"
+                  (ngModelChange)="onAdvancedFiltersChange()"
+                />
+              </div>
+              <div class="form-group dual-input">
+                <label>Value Range</label>
+                <div class="dual-input-container">
+                  <input 
+                    type="number" 
+                    [(ngModel)]="advancedFilters.minValue"
+                    (ngModelChange)="onAdvancedFiltersChange()"
+                    placeholder="Min"
+                  />
+                  <span>to</span>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="advancedFilters.maxValue"
+                    (ngModelChange)="onAdvancedFiltersChange()"
+                    placeholder="Max"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button 
+              (click)="clearAdvancedFilters()"
+              class="btn btn-secondary"
+            >
+              Clear All Filters
+            </button>
+            <span class="results-count">
+              {{ getFilteredAllPlayersStats().length }} results
+            </span>
+          </div>
+        </div>
+
+        <div *ngIf="allPlayersStatistics.length === 0 && !loading" class="empty-state">
+          <div class="empty-icon">👥</div>
+          <h4>No statistics found</h4>
+          <p>No statistics found for the selected filters. Try adjusting your filters or add some statistics.</p>
+        </div>
+
+        <!-- All Players Statistics Table -->
+        <div *ngIf="allPlayersStatistics.length > 0" class="all-players-table-view">
+          <div class="table-container">
+            <table class="stats-table enhanced-table">
+              <thead>
+                <tr>
+                  <th (click)="sortBy('player_name')" class="sortable">
+                    Player
+                    <span class="sort-indicator" *ngIf="sortField === 'player_name'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('jersey_number')" class="sortable">
+                    #
+                    <span class="sort-indicator" *ngIf="sortField === 'jersey_number'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('position')" class="sortable">
+                    Position
+                    <span class="sort-indicator" *ngIf="sortField === 'position'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('stat_date')" class="sortable">
+                    Date
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_date'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('stat_category')" class="sortable">
+                    Category
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_category'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('stat_name')" class="sortable">
+                    Statistic
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_name'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('stat_value')" class="sortable">
+                    Value
+                    <span class="sort-indicator" *ngIf="sortField === 'stat_value'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('game_type')" class="sortable">
+                    Game Type
+                    <span class="sort-indicator" *ngIf="sortField === 'game_type'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th (click)="sortBy('opponent')" class="sortable">
+                    Opponent
+                    <span class="sort-indicator" *ngIf="sortField === 'opponent'">
+                      {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let stat of getFilteredAllPlayersStats()" class="stat-row enhanced-row">
+                  <td class="player-cell">
+                    <div class="player-info">
+                      <span class="player-name">{{ stat.player_name }}</span>
+                    </div>
+                  </td>
+                  <td class="jersey-cell">
+                    <span class="jersey-number">{{ stat.jersey_number || '-' }}</span>
+                  </td>
+                  <td class="position-cell">
+                    <span class="position">{{ stat.position || '-' }}</span>
+                  </td>
+                  <td class="date-cell">{{ stat.stat_date | date:'MMM d, y' }}</td>
+                  <td class="category-cell">
+                    <span class="category-badge" [class]="stat.stat_category">
+                      {{ getCategoryLabel(stat.stat_category) }}
+                    </span>
+                  </td>
+                  <td class="stat-name-cell">{{ getStatDisplayName(stat.stat_name, stat.stat_category) }}</td>
+                  <td class="stat-value-cell">
+                    <span class="value-display" [class]="getValueClass(stat.stat_name, stat.stat_value)">
+                      {{ formatStatValue(stat.stat_value, stat.stat_name) }}
+                    </span>
+                  </td>
+                  <td class="game-type-cell">
+                    <span *ngIf="stat.game_type" class="game-type-badge" [class]="stat.game_type">
+                      {{ formatGameType(stat.game_type) }}
+                    </span>
+                    <span *ngIf="!stat.game_type">-</span>
+                  </td>
+                  <td class="opponent-cell">{{ stat.opponent || '-' }}</td>
+                  <td class="actions-cell">
+                    <button class="action-btn edit" (click)="editStat(stat)" title="Edit">✏️</button>
+                    <button class="action-btn delete" (click)="deleteStat(stat)" title="Delete">🗑️</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistical Analysis Tab -->
+      <div *ngIf="activeTab === 'analysis'" class="tab-content">
+        <!-- Advanced Analysis Header -->
+        <div class="stats-header">
+          <div class="header-content">
+            <h3>🎯 Advanced Statistical Analysis</h3>
+            <p class="header-subtitle">Comprehensive performance insights and coaching analytics</p>
+          </div>
+          <div class="export-actions">
+            <button 
+              (click)="loadStatisticalAnalysis()"
+              class="btn btn-primary"
+            >
+              🔄 Refresh Analysis
+            </button>
+            <button 
+              (click)="generatePDFReport()"
+              class="btn btn-secondary"
+            >
+              📄 PDF Report
+            </button>
+            <button 
+              (click)="toggleAdvancedFilters()"
+              class="btn btn-outline"
+            >
+              🔧 Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Advanced Filter Panel -->
+        <div *ngIf="showAdvancedFilters" class="advanced-filters-panel">
+          <div class="filter-grid">
+            <div class="filter-group">
+              <label>📅 Date Range</label>
+              <div class="date-range-inputs">
+                <input type="date" [(ngModel)]="analysisFilters.startDate" class="form-control">
+                <span>to</span>
+                <input type="date" [(ngModel)]="analysisFilters.endDate" class="form-control">
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>👥 Players</label>
+              <select multiple [(ngModel)]="analysisFilters.selectedPlayers" class="form-control">
+                <option *ngFor="let player of players" [value]="player.id">
+                  {{ player.name }}
+                </option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>📊 Categories</label>
+              <div class="category-checkboxes">
+                <label *ngFor="let category of availableCategories" class="checkbox-label">
+                  <input type="checkbox" 
+                         [value]="category.value" 
+                         [(ngModel)]="analysisFilters.selectedCategories"
+                         [checked]="analysisFilters.selectedCategories.includes(category.value)">
+                  {{ category.label }}
+                </label>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>🎮 Match Type</label>
+              <select [(ngModel)]="analysisFilters.matchType" class="form-control">
+                <option value="">All Matches</option>
+                <option value="practice">Practice</option>
+                <option value="scrimmage">Scrimmage</option>
+                <option value="league">League</option>
+                <option value="tournament">Tournament</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button (click)="applyAdvancedFilters()" class="btn btn-primary">Apply Filters</button>
+            <button (click)="clearFilters()" class="btn btn-outline">Clear All</button>
+          </div>
+        </div>
+
+        <div *ngIf="statisticalAnalysis" class="analysis-content">
+          <!-- Executive Summary Dashboard -->
+          <div class="executive-summary">
+            <h4>📋 Executive Summary</h4>
+            <div class="summary-cards grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <div class="summary-card primary">
+                <div class="card-icon">📊</div>
+                <h5>Total Records</h5>
+                <p class="metric">{{ statisticalAnalysis.summary.total_records }}</p>
+                <small class="metric-subtitle">Statistical entries</small>
+              </div>
+              <div class="summary-card success">
+                <div class="card-icon">📂</div>
+                <h5>Categories</h5>
+                <p class="metric">{{ statisticalAnalysis.summary.categories_count }}</p>
+                <small class="metric-subtitle">Tracked metrics</small>
+              </div>
+              <div class="summary-card info">
+                <div class="card-icon">👥</div>
+                <h5>Active Players</h5>
+                <p class="metric">{{ statisticalAnalysis.summary.players_count }}</p>
+                <small class="metric-subtitle">Team members</small>
+              </div>
+              <div class="summary-card warning">
+                <div class="card-icon">⏱️</div>
+                <h5>Data Span</h5>
+                <p class="metric-small">{{ getDataSpanDays() }} days</p>
+                <small class="metric-subtitle">{{ statisticalAnalysis.summary.earliest_date | date:'MMM d' }} - {{ statisticalAnalysis.summary.latest_date | date:'MMM d' }}</small>
+              </div>
+              <div class="summary-card accent">
+                <div class="card-icon">🏆</div>
+                <h5>Team Rating</h5>
+                <p class="metric">{{ calculateTeamRating() }}<span class="rating-scale">/100</span></p>
+                <small class="metric-subtitle">Overall performance</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Insights Bar -->
+          <div class="quick-insights-bar">
+            <div class="insight-bubble improving" *ngIf="getImprovingTrends() > 0">
+              🚀 {{ getImprovingTrends() }} stats improving
+            </div>
+            <div class="insight-bubble warning" *ngIf="getDecliningTrends() > 0">
+              ⚠️ {{ getDecliningTrends() }} areas need attention
+            </div>
+            <div class="insight-bubble info" *ngIf="getTopPerformerOfWeek()">
+              ⭐ {{ getTopPerformerOfWeek() }} is this week's MVP
+            </div>
+            <div class="insight-bubble neutral" *ngIf="getConsistencyScore() > 80">
+              🎯 High team consistency ({{ getConsistencyScore() }}%)
+            </div>
+          </div>
+
+          <!-- Main Analytics Grid -->
+          <div class="analytics-grid">
+            <!-- Performance Heatmap -->
+            <div class="analytics-card span-2">
+              <div class="card-header">
+                <h4>🔥 Performance Heatmap</h4>
+                <div class="card-actions">
+                  <select [(ngModel)]="heatmapPeriod" (change)="updateHeatmap()" class="mini-select">
+                    <option value="7">Last 7 days</option>
+                    <option value="14">Last 2 weeks</option>
+                    <option value="30">Last month</option>
+                    <option value="90">Last 3 months</option>
+                  </select>
+                </div>
+              </div>
+              <div class="heatmap-container">
+                <div class="heatmap-grid">
+                  <div class="heatmap-header">
+                    <div class="heatmap-cell header">Player</div>
+                    <div *ngFor="let category of heatmapCategories" class="heatmap-cell header">
+                      {{ category }}
+                    </div>
+                  </div>
+                  <div *ngFor="let player of heatmapData" class="heatmap-row">
+                    <div class="heatmap-cell player-name">{{ player.name }}</div>
+                    <div *ngFor="let score of player.scores" 
+                         class="heatmap-cell performance-cell"
+                         [class]="getHeatmapClass(score)">
+                      {{ score || '-' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="heatmap-legend">
+                  <span>Poor</span>
+                  <div class="legend-gradient"></div>
+                  <span>Excellent</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Player Comparison Radar -->
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4>🎯 Player Comparison</h4>
+                <div class="card-actions">
+                  <select [(ngModel)]="comparisonPlayer1" class="mini-select">
+                    <option value="">Select Player 1</option>
+                    <option *ngFor="let player of players" [value]="player.id">{{ player.name }}</option>
+                  </select>
+                  <select [(ngModel)]="comparisonPlayer2" class="mini-select">
+                    <option value="">Select Player 2</option>
+                    <option *ngFor="let player of players" [value]="player.id">{{ player.name }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="radar-chart-container" *ngIf="comparisonPlayer1 && comparisonPlayer2">
+                <div class="radar-chart">
+                  <!-- Radar chart implementation -->
+                  <svg viewBox="0 0 300 300" class="radar-svg">
+                    <!-- Background grid -->
+                    <g class="radar-grid">
+                      <circle cx="150" cy="150" r="120" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                      <circle cx="150" cy="150" r="90" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                      <circle cx="150" cy="150" r="60" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                      <circle cx="150" cy="150" r="30" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                      <!-- Axes -->
+                      <line x1="150" y1="30" x2="150" y2="270" stroke="#e5e7eb" stroke-width="1"/>
+                      <line x1="30" y1="150" x2="270" y2="150" stroke="#e5e7eb" stroke-width="1"/>
+                    </g>
+                    <!-- Player 1 data -->
+                    <polygon [attr.points]="getRadarPoints(comparisonPlayer1)" 
+                             fill="rgba(59, 130, 246, 0.3)" 
+                             stroke="#3b82f6" 
+                             stroke-width="2"/>
+                    <!-- Player 2 data -->
+                    <polygon [attr.points]="getRadarPoints(comparisonPlayer2)" 
+                             fill="rgba(239, 68, 68, 0.3)" 
+                             stroke="#ef4444" 
+                             stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="radar-legend">
+                  <div class="legend-item">
+                    <span class="legend-color player1"></span>
+                    {{ getPlayerName(comparisonPlayer1) }}
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-color player2"></span>
+                    {{ getPlayerName(comparisonPlayer2) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Performance Trends Chart -->
+            <div class="analytics-card span-2">
+              <div class="card-header">
+                <h4>📈 Performance Trends</h4>
+                <div class="card-actions">
+                  <select [(ngModel)]="trendsCategory" (change)="updateTrendsChart()" class="mini-select">
+                    <option value="">All Categories</option>
+                    <option *ngFor="let category of availableCategories" [value]="category.value">
+                      {{ category.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="trends-chart-container">
+                <div class="chart-area">
+                  <!-- Line chart implementation -->
+                  <svg viewBox="0 0 600 300" class="trends-svg">
+                    <!-- Chart background -->
+                    <rect width="600" height="300" fill="#f9fafb"/>
+                    <!-- Grid lines -->
+                    <g class="chart-grid">
+                      <line *ngFor="let line of getTrendGridLines()" 
+                            [attr.x1]="line.x1" [attr.y1]="line.y1" 
+                            [attr.x2]="line.x2" [attr.y2]="line.y2" 
+                            stroke="#e5e7eb" stroke-width="1"/>
+                    </g>
+                    <!-- Trend lines -->
+                    <g class="trend-lines">
+                      <path *ngFor="let trend of getTrendLines()" 
+                            [attr.d]="trend.path" 
+                            [attr.stroke]="trend.color" 
+                            stroke-width="2" 
+                            fill="none"/>
+                    </g>
+                  </svg>
+                </div>
+                <div class="chart-legend">
+                  <div *ngFor="let legend of getTrendsLegend()" class="legend-item">
+                    <span class="legend-color" [style.background-color]="legend.color"></span>
+                    {{ legend.label }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Performers Showcase -->
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4>🏆 Elite Performers</h4>
+              </div>
+              <div class="top-performers-showcase" *ngIf="statisticalAnalysis.topPerformers?.length > 0">
+                <div *ngFor="let performer of getTopElitePerformers(); let i = index" 
+                     class="performer-showcase-card" 
+                     [class]="'rank-' + (i + 1)">
+                  <div class="performer-rank">
+                    <span class="rank-number">{{ i + 1 }}</span>
+                    <span class="rank-medal">{{ getRankMedal(i) }}</span>
+                  </div>
+                  <div class="performer-info">
+                    <div class="performer-avatar">{{ getPlayerInitials(performer.first_name, performer.last_name) }}</div>
+                    <div class="performer-details">
+                      <span class="player-name">{{ performer.first_name }} {{ performer.last_name }}</span>
+                      <span class="jersey">#{{ performer.jersey_number }}</span>
+                      <span class="specialization">{{ performer.stat_category | titlecase }}</span>
+                    </div>
+                  </div>
+                  <div class="performance-stats">
+                    <div class="stat-highlight">
+                      <span class="stat-value">{{ performer.best_value }}</span>
+                      <span class="stat-label">{{ getStatDisplayName(performer.stat_name, performer.stat_category) }}</span>
+                    </div>
+                    <div class="consistency-bar">
+                      <div class="consistency-fill" [style.width]="getConsistencyPercentage(performer) + '%'"></div>
+                    </div>
+                    <span class="consistency-label">{{ getConsistencyPercentage(performer) }}% consistent</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Skill Development Matrix -->
+            <div class="analytics-card span-2">
+              <div class="card-header">
+                <h4>🎓 Skill Development Matrix</h4>
+                <p class="card-subtitle">Track individual player growth across all skill areas</p>
+              </div>
+              <div class="skill-matrix">
+                <div class="matrix-grid">
+                  <div class="matrix-header">
+                    <div class="matrix-cell header">Player</div>
+                    <div *ngFor="let skill of skillCategories" class="matrix-cell header skill-header">
+                      <span class="skill-icon">{{ skill.icon }}</span>
+                      <span class="skill-name">{{ skill.name }}</span>
+                    </div>
+                    <div class="matrix-cell header">Overall</div>
+                  </div>
+                  <div *ngFor="let player of getSkillMatrixData()" class="matrix-row">
+                    <div class="matrix-cell player-cell">
+                      <div class="player-info">
+                        <span class="player-name">{{ player.name }}</span>
+                        <span class="player-position">{{ player.position }}</span>
+                      </div>
+                    </div>
+                    <div *ngFor="let skill of player.skills" 
+                         class="matrix-cell skill-cell"
+                         [class]="getSkillLevelClass(skill.level)">
+                      <div class="skill-score">{{ skill.score }}</div>
+                      <div class="skill-trend">{{ skill.trend }}</div>
+                    </div>
+                    <div class="matrix-cell overall-cell">
+                      <div class="overall-score">{{ player.overallScore }}</div>
+                      <div class="overall-grade">{{ getLetterGrade(player.overallScore) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Match Performance Analysis -->
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4>⚡ Match Performance</h4>
+              </div>
+              <div class="match-performance">
+                <div class="performance-timeline">
+                  <div *ngFor="let match of getRecentMatches()" class="match-timeline-item">
+                    <div class="match-date">{{ match.date | date:'MMM d' }}</div>
+                    <div class="match-opponent">vs {{ match.opponent }}</div>
+                    <div class="match-result" [class]="match.result.toLowerCase()">
+                      {{ match.result }}
+                    </div>
+                    <div class="match-stats">
+                      <div class="stat-mini">
+                        <span>Kills:</span>
+                        <span>{{ match.kills }}</span>
+                      </div>
+                      <div class="stat-mini">
+                        <span>Errors:</span>
+                        <span>{{ match.errors }}</span>
+                      </div>
+                      <div class="stat-mini">
+                        <span>Efficiency:</span>
+                        <span>{{ match.efficiency }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Position Analysis -->
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4>🏐 Position Analysis</h4>
+              </div>
+              <div class="position-analysis">
+                <div *ngFor="let position of getPositionStats()" class="position-card">
+                  <div class="position-header">
+                    <span class="position-icon">{{ position.icon }}</span>
+                    <span class="position-name">{{ position.name }}</span>
+                    <span class="position-count">{{ position.playerCount }} players</span>
+                  </div>
+                  <div class="position-strengths">
+                    <h6>Strengths</h6>
+                    <div *ngFor="let strength of position.strengths" class="strength-item">
+                      <span class="strength-name">{{ strength.name }}</span>
+                      <div class="strength-bar">
+                        <div class="strength-fill" [style.width]="strength.value + '%'"></div>
+                      </div>
+                      <span class="strength-value">{{ strength.value }}%</span>
+                    </div>
+                  </div>
+                  <div class="position-focus-areas">
+                    <h6>Focus Areas</h6>
+                    <ul>
+                      <li *ngFor="let area of position.focusAreas">{{ area }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Advanced Insights & Recommendations -->
+            <div class="analytics-card span-3">
+              <div class="card-header">
+                <h4>🧠 AI-Powered Insights & Coaching Recommendations</h4>
+              </div>
+              <div class="insights-container">
+                <!-- Critical Insights -->
+                <div class="insights-section critical">
+                  <h5>🚨 Critical Areas</h5>
+                  <div class="insights-list">
+                    <div *ngFor="let insight of getCriticalInsights()" class="insight-item critical">
+                      <span class="insight-icon">⚠️</span>
+                      <div class="insight-content">
+                        <span class="insight-title">{{ insight.title }}</span>
+                        <span class="insight-message">{{ insight.message }}</span>
+                        <div class="insight-actions">
+                          <button class="action-btn" (click)="viewInsightDetails(insight)">View Details</button>
+                          <button class="action-btn primary" (click)="createDrillFromInsight(insight)">Create Drill</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Opportunities -->
+                <div class="insights-section opportunities">
+                  <h5>💡 Growth Opportunities</h5>
+                  <div class="insights-list">
+                    <div *ngFor="let opportunity of getGrowthOpportunities()" class="insight-item opportunity">
+                      <span class="insight-icon">📈</span>
+                      <div class="insight-content">
+                        <span class="insight-title">{{ opportunity.title }}</span>
+                        <span class="insight-message">{{ opportunity.message }}</span>
+                        <div class="opportunity-potential">
+                          Expected improvement: <strong>{{ opportunity.potential }}%</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Training Recommendations -->
+                <div class="insights-section training">
+                  <h5>🏃‍♀️ Training Recommendations</h5>
+                  <div class="training-recommendations">
+                    <div *ngFor="let rec of getTrainingRecommendations()" class="training-rec-card">
+                      <div class="rec-header">
+                        <span class="rec-icon">{{ rec.icon }}</span>
+                        <span class="rec-title">{{ rec.title }}</span>
+                        <span class="rec-priority" [class]="rec.priority">{{ rec.priority }}</span>
+                      </div>
+                      <div class="rec-content">
+                        <p class="rec-description">{{ rec.description }}</p>
+                        <div class="rec-details">
+                          <span><strong>Duration:</strong> {{ rec.duration }}</span>
+                          <span><strong>Frequency:</strong> {{ rec.frequency }}</span>
+                          <span><strong>Target:</strong> {{ rec.target }}</span>
+                        </div>
+                        <div class="rec-actions">
+                          <button class="btn btn-sm btn-outline" (click)="scheduleTraining(rec)">
+                            📅 Schedule
+                          </button>
+                          <button class="btn btn-sm btn-primary" (click)="addToTrainingPlan(rec)">
+                            ➕ Add to Plan
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Team Chemistry & Combinations -->
+            <div class="analytics-card span-2">
+              <div class="card-header">
+                <h4>⚡ Team Chemistry & Combinations</h4>
+                <p class="card-subtitle">Analyze player combinations and on-court chemistry</p>
+              </div>
+              <div class="chemistry-analysis">
+                <div class="best-combinations">
+                  <h6>🔥 Best Player Combinations</h6>
+                  <div *ngFor="let combo of getBestCombinations()" class="combo-card">
+                    <div class="combo-players">
+                      <div *ngFor="let player of combo.players" class="combo-player">
+                        <div class="player-avatar small">{{ getPlayerInitials(player.firstName, player.lastName) }}</div>
+                        <span class="player-name">{{ player.firstName }}</span>
+                      </div>
+                    </div>
+                    <div class="combo-stats">
+                      <div class="combo-stat">
+                        <span class="stat-label">Efficiency:</span>
+                        <span class="stat-value success">{{ combo.efficiency }}%</span>
+                      </div>
+                      <div class="combo-stat">
+                        <span class="stat-label">Synergy:</span>
+                        <div class="synergy-bar">
+                          <div class="synergy-fill" [style.width]="combo.synergy + '%'"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rotation-analysis">
+                  <h6>🔄 Rotation Effectiveness</h6>
+                  <div class="rotation-grid">
+                    <div *ngFor="let rotation of getRotationAnalysis()" class="rotation-item">
+                      <div class="rotation-name">{{ rotation.name }}</div>
+                      <div class="rotation-performance">
+                        <div class="performance-meter">
+                          <div class="meter-fill" [style.width]="rotation.effectiveness + '%'"></div>
+                        </div>
+                        <span class="performance-value">{{ rotation.effectiveness }}%</span>
+                      </div>
+                      <div class="rotation-insights">
+                        <span *ngFor="let insight of rotation.insights" class="rotation-insight">
+                          {{ insight }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Injury Risk & Wellness -->
+            <div class="analytics-card">
+              <div class="card-header">
+                <h4>🏥 Player Wellness & Risk Assessment</h4>
+              </div>
+              <div class="wellness-dashboard">
+                <div class="risk-overview">
+                  <div class="risk-meter">
+                    <div class="meter-circle" [attr.data-percentage]="getTeamRiskLevel()">
+                      <span class="risk-value">{{ getTeamRiskLevel() }}%</span>
+                      <span class="risk-label">Team Risk</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="player-wellness-list">
+                  <div *ngFor="let player of getPlayerWellnessData()" class="wellness-item">
+                    <div class="player-info">
+                      <span class="player-name">{{ player.name }}</span>
+                      <span class="wellness-status" [class]="player.status">{{ player.status }}</span>
+                    </div>
+                    <div class="wellness-indicators">
+                      <div class="indicator" [class]="player.fatigue.level">
+                        <span>💤 {{ player.fatigue.value }}%</span>
+                      </div>
+                      <div class="indicator" [class]="player.load.level">
+                        <span>⚡ {{ player.load.value }}</span>
+                      </div>
+                      <div class="indicator" [class]="player.recovery.level">
+                        <span>🔄 {{ player.recovery.value }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Original sections enhanced -->
+          <div class="enhanced-sections">
+            <!-- Enhanced Trends with Advanced Analytics -->
+            <div class="analysis-section mb-6" *ngIf="statisticalAnalysis.trends?.length > 0">
+              <div class="section-header">
+                <h4>📊 Performance Trends Analysis</h4>
+                <div class="trend-controls">
+                  <select [(ngModel)]="trendsPeriod" (change)="updateTrendsAnalysis()" class="form-control">
+                    <option value="7">Last 7 days</option>
+                    <option value="14">Last 2 weeks</option>
+                    <option value="30">Last month</option>
+                    <option value="90">Last quarter</option>
+                  </select>
+                  <button (click)="exportTrendsData()" class="btn btn-sm btn-outline">Export</button>
+                </div>
+              </div>
+              <div class="trends-enhanced-grid">
+                <div *ngFor="let trend of statisticalAnalysis.trends" 
+                     class="trend-card-enhanced" 
+                     [class.improving]="trend.trend_direction === 'improving'" 
+                     [class.declining]="trend.trend_direction === 'declining'">
+                  <div class="trend-header">
+                    <div class="trend-info">
+                      <span class="trend-category">{{ getCategoryLabel(trend.stat_category) }}</span>
+                      <span class="trend-stat">{{ getStatDisplayName(trend.stat_name, trend.stat_category) }}</span>
+                    </div>
+                    <div class="trend-direction-indicator">
+                      <span class="trend-icon">{{ trend.trend_direction === 'improving' ? '📈' : '📉' }}</span>
+                      <span class="trend-percentage" [class]="trend.trend_direction">
+                        {{ trend.change_percentage }}%
+                      </span>
+                    </div>
+                  </div>
+                  <div class="trend-chart-mini">
+                    <!-- Mini trend line chart -->
+                    <svg viewBox="0 0 100 30" class="mini-chart">
+                      <polyline [attr.points]="getTrendMiniChart(trend)" 
+                                stroke="currentColor" 
+                                stroke-width="2" 
+                                fill="none"/>
+                    </svg>
+                  </div>
+                  <div class="trend-details">
+                    <div class="trend-values">
+                      <div class="value-item">
+                        <span class="value-label">Recent Avg:</span>
+                        <span class="value-number">{{ trend.recent_avg?.toFixed(2) }}</span>
+                      </div>
+                      <div class="value-item">
+                        <span class="value-label">Previous Avg:</span>
+                        <span class="value-number">{{ trend.previous_avg?.toFixed(2) }}</span>
+                      </div>
+                    </div>
+                    <div class="trend-recommendation">
+                      <span class="rec-icon">💡</span>
+                      <span class="rec-text">{{ getTrendRecommendation(trend) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Enhanced Category Analysis with Benchmarking -->
+            <div class="analysis-section mb-6" *ngIf="statisticalAnalysis.categoryAnalysis?.length > 0">
+              <div class="section-header">
+                <h4>📂 Category Performance Benchmarking</h4>
+                <div class="benchmark-controls">
+                  <select [(ngModel)]="benchmarkLevel" class="form-control">
+                    <option value="team">Team Level</option>
+                    <option value="league">League Average</option>
+                    <option value="elite">Elite Level</option>
+                  </select>
+                </div>
+              </div>
+              <div class="category-analysis-enhanced">
+                <div *ngFor="let category of statisticalAnalysis.categoryAnalysis" class="category-card-enhanced">
+                  <div class="category-header">
+                    <h5>
+                      <span class="category-icon">{{ getCategoryIcon(category.stat_category) }}</span>
+                      {{ getCategoryLabel(category.stat_category) }}
+                    </h5>
+                    <div class="category-grade">
+                      <span class="grade-letter">{{ getCategoryGrade(category) }}</span>
+                      <span class="grade-gpa">{{ getCategoryGPA(category).toFixed(1) }}</span>
+                    </div>
+                  </div>
+                  <div class="category-stats-enhanced">
+                    <div class="stat-item">
+                      <span class="stat-label">📊 Records:</span>
+                      <span class="stat-value">{{ category.record_count }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">📈 Average:</span>
+                      <span class="stat-value">{{ category.average_value?.toFixed(2) }}</span>
+                      <span class="benchmark-comparison" [class]="getBenchmarkClass(category, 'average')">
+                        {{ getBenchmarkComparison(category, 'average') }}
+                      </span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">🎯 Range:</span>
+                      <span class="stat-value">{{ category.min_value }} - {{ category.max_value }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">📏 Consistency:</span>
+                      <div class="consistency-visual">
+                        <div class="consistency-bar">
+                          <div class="consistency-fill" [style.width]="getCategoryConsistency(category) + '%'"></div>
+                        </div>
+                        <span class="consistency-percentage">{{ getCategoryConsistency(category) }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="category-insights">
+                    <div class="insight-tags">
+                      <span *ngFor="let tag of getCategoryInsightTags(category)" 
+                            class="insight-tag" 
+                            [class]="tag.type">
+                        {{ tag.text }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Export and Action Center -->
+          <div class="action-center">
+            <h4>🚀 Action Center</h4>
+            <div class="action-grid">
+              <button (click)="generateFullReport()" class="action-btn large primary">
+                📊 Generate Full Report
+              </button>
+              <button (click)="scheduleTeamMeeting()" class="action-btn large secondary">
+                👥 Schedule Team Review
+              </button>
+              <button (click)="createTrainingPlan()" class="action-btn large success">
+                🏃‍♀️ Create Training Plan
+              </button>
+              <button (click)="exportAllData()" class="action-btn large outline">
+                💾 Export All Data
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!statisticalAnalysis && !loading" class="no-analysis-enhanced">
+          <div class="no-analysis-content">
+            <div class="no-analysis-icon">📊</div>
+            <h3>No Analysis Data Available</h3>
+            <p>Click "Refresh Analysis" to generate comprehensive statistical analysis for your team.</p>
+            <div class="getting-started-tips">
+              <h4>💡 Getting Started Tips:</h4>
+              <ul>
+                <li>Ensure you have player statistics recorded</li>
+                <li>Try different date ranges for more insights</li>
+                <li>Use filters to focus on specific categories</li>
+                <li>Regular analysis helps track improvement</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Statistics Modal -->
+  <div 
+    *ngIf="showAddForm"
+    class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+    (click)="closeAddForm()"
+    style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 9999 !important;"
+  >
+    <div 
+      class="modal-content bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+      (click)="$event.stopPropagation()"
+      style="position: relative !important;"
+    >
+      <div class="modal-header bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
+        <h3 class="text-xl font-semibold flex items-center gap-2">
+          <span class="text-2xl">📊</span>
+          Add Statistics
+        </h3>
+        <button 
+          class="modal-close text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
+          (click)="closeAddForm()"
+          type="button"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body p-6 overflow-y-auto">
+        <form (ngSubmit)="submitAddStatistic()" #addForm="ngForm" id="addStatsForm" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+            <select 
+              [(ngModel)]="addStatForm.type" 
+              name="type"
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="" disabled>Select Type</option>
+              <option value="player">📊 Player Statistics</option>
+              <option value="team">🏐 Team Statistics</option>
+            </select>
+          </div>
+
+          <div *ngIf="addStatForm.type === 'player'" class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Player</label>
+            <select 
+              [(ngModel)]="addStatForm.playerId" 
+              name="playerId"
+              [required]="addStatForm.type === 'player'"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="" disabled>Select Player</option>
+              <option *ngFor="let player of players" [value]="player.id">
+                👤 {{ player.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Event Selection Section -->
+        <div class="form-section bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+          <div class="form-group">
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="addStatForm.useEventData" 
+                name="useEventData"
+                (ngModelChange)="onUseEventDataChange()"
+                class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 transition-all duration-200"
+              />
+              <span class="text-sm font-medium text-gray-700">
+                🎯 Use existing event data (auto-fills date, game type, opponent)
+              </span>
+            </label>
+          </div>
+
+          <div *ngIf="addStatForm.useEventData" class="form-group mt-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Select Event</label>
+            <select 
+              [(ngModel)]="addStatForm.eventId" 
+              name="eventId"
+              (ngModelChange)="onEventSelectionChange()"
+              [required]="addStatForm.useEventData"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="" disabled>Choose an event...</option>
+              <option *ngFor="let event of availableEvents" [value]="event.id">
+                📅 {{ event.event_date | date:'MMM d, y' }} - {{ event.title }} 
+                <span *ngIf="event.opponent">(🆚 {{ event.opponent }})</span>
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+            <select 
+              [(ngModel)]="addStatForm.statCategory" 
+              name="statCategory"
+              (ngModelChange)="onStatCategoryChange()"
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="" disabled>Select Category</option>
+              <option *ngFor="let category of categories" [value]="category.name">
+                📊 {{ category.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Statistic</label>
+            <select 
+              [(ngModel)]="addStatForm.statName" 
+              name="statName"
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="" disabled>Select Statistic</option>
+              <option *ngFor="let stat of getStatsForCategory(addStatForm.statCategory)" [value]="stat.name">
+                📈 {{ stat.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Value</label>
+            <input 
+              type="number" 
+              step="0.001"
+              [(ngModel)]="addStatForm.statValue" 
+              name="statValue"
+              required
+              placeholder="Enter value..."
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400 placeholder:text-gray-400"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+            <input 
+              type="date" 
+              [(ngModel)]="addStatForm.statDate" 
+              name="statDate"
+              [required]="!addStatForm.useEventData"
+              [disabled]="addStatForm.useEventData"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Game Type</label>
+            <select 
+              [(ngModel)]="addStatForm.gameType" 
+              name="gameType"
+              [disabled]="addStatForm.useEventData"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            >
+              <option value="" disabled>Select Type</option>
+              <option value="practice">🏃‍♂️ Practice</option>
+              <option value="scrimmage">⚡ Scrimmage</option>
+              <option value="game">🏐 Game</option>
+              <option value="tournament">🏆 Tournament</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Opponent</label>
+            <input 
+              type="text" 
+              [(ngModel)]="addStatForm.opponent" 
+              name="opponent"
+              placeholder="Opponent team name..."
+              [disabled]="addStatForm.useEventData"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400 placeholder:text-gray-400 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+          <textarea 
+            [(ngModel)]="addStatForm.notes" 
+            name="notes"
+            rows="3"
+            placeholder="Additional notes about this statistic..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400 placeholder:text-gray-400 resize-y"
+          ></textarea>
+        </div>
+        </form>
+      </div>
+      
+      <div class="modal-footer bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+        <button 
+          type="button"
+          (click)="closeAddForm()"
+          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit"
+          form="addStatsForm"
+          [disabled]="!addForm.form.valid"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 font-medium flex items-center gap-2"
+        >
+          <span class="text-lg">📊</span>
+          Add Statistic
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Add Statistics Modal -->
+  <div 
+    *ngIf="showBulkAddForm"
+    class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+    (click)="closeBulkAddForm()"
+    style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 9999 !important;"
+  >
+    <div 
+      class="modal-content large-modal bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+      (click)="$event.stopPropagation()"
+      style="position: relative !important;"
+    >
+      <div class="modal-header bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-4">
+        <h3 class="text-xl font-semibold flex items-center gap-2">
+          <span class="text-2xl">📈</span>
+          Add Multiple Statistics
+        </h3>
+        <button 
+          class="modal-close text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
+          (click)="closeBulkAddForm()"
+          type="button"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body p-6 overflow-y-auto">
+        <form (ngSubmit)="submitBulkStatistics()" #bulkForm="ngForm" id="bulkStatsForm" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+            <select 
+              [(ngModel)]="bulkAddForm.type" 
+              name="bulkType"
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="" disabled>Select Type</option>
+              <option value="player">📊 Player Statistics</option>
+              <option value="team">🏐 Team Statistics</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Event Selection Section -->
+        <div class="form-section bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+          <div class="form-group">
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="bulkAddForm.useEventData" 
+                name="bulkUseEventData"
+                (ngModelChange)="onBulkUseEventDataChange()"
+                class="w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2 transition-all duration-200"
+              />
+              <span class="text-sm font-medium text-gray-700">
+                🎯 Use existing event data (applies to all entries)
+              </span>
+            </label>
+          </div>
+
+          <div *ngIf="bulkAddForm.useEventData" class="form-group mt-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Select Event</label>
+            <select 
+              [(ngModel)]="bulkAddForm.eventId" 
+              name="bulkEventId"
+              (ngModelChange)="onBulkEventSelectionChange()"
+              [required]="bulkAddForm.useEventData"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="" disabled>Choose an event...</option>
+              <option *ngFor="let event of availableEvents" [value]="event.id">
+                📅 {{ event.event_date | date:'MMM d, y' }} - {{ event.title }} 
+                <span *ngIf="event.opponent">(🆚 {{ event.opponent }})</span>
+              </option>
+            </select>
+          </div>
+
+          <div *ngIf="!bulkAddForm.useEventData" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div class="form-group">
+              <label>Date</label>
+              <input 
+                type="date" 
+                [(ngModel)]="bulkAddForm.statDate" 
+                name="bulkStatDate"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Game Type</label>
+              <select 
+                [(ngModel)]="bulkAddForm.gameType" 
+                name="bulkGameType"
+              >
+                <option value="">Select Type</option>
+                <option value="practice">Practice</option>
+                <option value="scrimmage">Scrimmage</option>
+                <option value="game">Game</option>
+                <option value="tournament">Tournament</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Opponent</label>
+              <input 
+                type="text" 
+                [(ngModel)]="bulkAddForm.opponent" 
+                name="bulkOpponent"
+                placeholder="Opponent team"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>General Notes (applies to all entries)</label>
+            <textarea 
+              [(ngModel)]="bulkAddForm.notes" 
+              name="bulkNotes"
+              rows="2"
+              placeholder="Notes that apply to all statistics..."
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Statistics Entries -->
+        <div class="form-section">
+          <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+            <h4 style="font-size: 1rem; font-weight: 500; margin: 0;">Statistics Entries</h4>
+            <button 
+              type="button"
+              (click)="addStatEntry()"
+              class="btn btn-sm btn-primary"
+            >
+              Add Entry
+            </button>
+          </div>
+
+          <div 
+            *ngFor="let entry of bulkAddForm.statisticsEntries; let i = index" 
+            class="stat-entry"
+            style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; margin-bottom: 1rem;"
+          >
+            <div class="flex justify-between items-center" style="margin-bottom: 0.5rem;">
+              <h5 style="font-size: 0.875rem; font-weight: 500; margin: 0;">Entry {{ i + 1 }}</h5>
+              <button 
+                *ngIf="bulkAddForm.statisticsEntries.length > 1"
+                type="button"
+                (click)="removeStatEntry(i)"
+                style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer;"
+              >
+                Remove
+              </button>
+            </div>
+
+            <div class="grid cols-4">
+              <div *ngIf="bulkAddForm.type === 'player'" class="form-group">
+                <label>Player</label>
+                <select 
+                  [(ngModel)]="entry.playerId" 
+                  [name]="'entryPlayerId_' + i"
+                  [required]="bulkAddForm.type === 'player'"
+                >
+                  <option *ngFor="let player of players" [value]="player.id">
+                    {{ player.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Category</label>
+                <select 
+                  [(ngModel)]="entry.statCategory" 
+                  [name]="'entryCategory_' + i"
+                  required
+                >
+                  <option value="">Select Category</option>
+                  <option *ngFor="let category of categories" [value]="category.name">
+                    {{ category.label }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Statistic</label>
+                <select 
+                  [(ngModel)]="entry.statName" 
+                  [name]="'entryStatName_' + i"
+                  required
+                >
+                  <option value="">Select Statistic</option>
+                  <option *ngFor="let stat of getStatsForCategory(entry.statCategory)" [value]="stat.name">
+                    {{ stat.label }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Value</label>
+                <input 
+                  type="number" 
+                  step="0.001"
+                  [(ngModel)]="entry.statValue" 
+                  [name]="'entryValue_' + i"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Entry Notes</label>
+              <input 
+                type="text" 
+                [(ngModel)]="entry.notes" 
+                [name]="'entryNotes_' + i"
+                placeholder="Specific notes for this entry..."
+              />
+            </div>
+          </div>
+        </div>
+        </form>
+      </div>
+      
+      <div class="modal-footer bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+        <button 
+          type="button"
+          (click)="closeBulkAddForm()"
+          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit"
+          form="bulkStatsForm"
+          [disabled]="!bulkForm.form.valid"
+          class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 font-medium flex items-center gap-2"
+        >
+          <span class="text-lg">📈</span>
+          Add All Statistics
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div 
+    *ngIf="showImportForm"
+    class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+    (click)="closeImportForm()"
+    style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 9999 !important;"
+  >
+    <div 
+      class="modal-content bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+      (click)="$event.stopPropagation()"
+      style="position: relative !important;"
+    >
+      <div class="modal-header bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4">
+        <h3 class="text-xl font-semibold flex items-center gap-2">
+          <span class="text-2xl">📥</span>
+          Import Statistics
+        </h3>
+        <button 
+          class="modal-close text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
+          (click)="closeImportForm()"
+          type="button"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body p-6 overflow-y-auto">
+        <form (ngSubmit)="submitImport()" id="importStatsForm" class="space-y-6">>
+        <div class="form-group">
+          <label>Import Type</label>
+          <select 
+            [(ngModel)]="importType" 
+            name="importType"
+            (ngModelChange)="onImportTypeChange()"
+          >
+            <option value="player">Player Statistics</option>
+            <option value="team">Team Statistics</option>
+          </select>
+        </div>
+
+        <div *ngIf="importType === 'player'" class="form-group">
+          <label>Target Player</label>
+          <select 
+            [(ngModel)]="importTargetId" 
+            name="importTargetId"
+          >
+            <option *ngFor="let player of players" [value]="player.id">
+              {{ player.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>File</label>
+          <input 
+            type="file" 
+            (change)="onFileSelect($event)"
+            accept=".csv,.xlsx,.xls"
+          />
+          <p style="margin-top: 0.25rem; font-size: 0.875rem; color: #6b7280;">
+            Upload a CSV or Excel file with columns: stat_category, stat_name, stat_value, stat_date, game_type (optional), opponent (optional), notes (optional)
+          </p>
+        </div>
+        </form>
+      </div>
+      
+      <div class="modal-footer bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+        <button 
+          type="button"
+          (click)="closeImportForm()"
+          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit"
+          form="importStatsForm"
+          [disabled]="!importFile || !importTargetId"
+          class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 font-medium flex items-center gap-2"
+        >
+          <span class="text-lg">📥</span>
+          Import Statistics
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Basic Filters Modal -->
+  <div 
+    *ngIf="showBasicFilters"
+    class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+    (click)="showBasicFilters = false"
+    style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 9999 !important;"
+  >
+    <div 
+      class="modal-content filters-modal bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden"
+      (click)="$event.stopPropagation()"
+      style="position: relative !important;"
+    >
+      <div class="modal-header bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-6 py-4">
+        <h3 class="text-xl font-semibold flex items-center gap-2">
+          <span class="text-2xl">🔍</span>
+          Filters
+        </h3>
+        <button 
+          class="modal-close text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
+          (click)="showBasicFilters = false"
+          type="button"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body p-6 overflow-y-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+            <select 
+              [(ngModel)]="filters.category" 
+              (ngModelChange)="onFiltersChange()"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="">All Categories</option>
+              <option *ngFor="let category of categories" [value]="category.name">
+                📊 {{ category.label }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Game Type</label>
+            <select 
+              [(ngModel)]="filters.gameType"
+              (ngModelChange)="onFiltersChange()"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            >
+              <option value="">All Types</option>
+              <option value="practice">🏃‍♂️ Practice</option>
+              <option value="scrimmage">⚡ Scrimmage</option>
+              <option value="game">🏐 Game</option>
+              <option value="tournament">🏆 Tournament</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
+            <input 
+              type="date" 
+              [(ngModel)]="filters.startDate"
+              (ngModelChange)="onFiltersChange()"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            />
+          </div>
+          <div class="form-group">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
+            <input 
+              type="date" 
+              [(ngModel)]="filters.endDate"
+              (ngModelChange)="onFiltersChange()"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-gray-900 shadow-sm hover:border-gray-400"
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+        <button 
+          (click)="clearFilters()"
+          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+        >
+          Clear Filters
+        </button>
+        <button 
+          (click)="showBasicFilters = false"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center gap-2"
+        >
+          <span class="text-lg">🔍</span>
+          Apply Filters
+        </button>
+      </div>
+    </div>
+  </div>
+<!-- </div> -->

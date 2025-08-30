@@ -1,6 +1,8 @@
 export interface Player {
   id: number;
-  name: string;
+  first_name: string;
+  last_name?: string;
+  name?: string; // Computed field for display
   position?: 'setter' | 'outside_hitter' | 'middle_blocker' | 'opposite' | 'libero' | 'defensive_specialist';
   year?: 'freshman' | 'sophomore' | 'junior' | 'senior' | 'graduate';
   jersey_number?: number;
@@ -18,7 +20,8 @@ export interface Player {
 }
 
 export interface CreatePlayerRequest {
-  name: string;
+  first_name: string;
+  last_name?: string;
   team_id: number;
   position?: string;
   year?: string;
@@ -32,7 +35,8 @@ export interface CreatePlayerRequest {
 }
 
 export interface UpdatePlayerRequest {
-  name?: string;
+  first_name?: string;
+  last_name?: string;
   position?: string;
   year?: string;
   jersey_number?: number;

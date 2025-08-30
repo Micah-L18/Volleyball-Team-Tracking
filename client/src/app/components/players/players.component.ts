@@ -93,7 +93,7 @@ import { Team } from '../../models/types';
             <img 
               *ngIf="player.photo_url" 
               [src]="player.photo_url" 
-              [alt]="player.name"
+              [alt]="getPlayerDisplayName(player)"
               class="w-full h-full object-cover"
             >
             <div *ngIf="!player.photo_url" class="text-gray-400">
@@ -106,7 +106,7 @@ import { Team } from '../../models/types';
           <!-- Player Info -->
           <div class="p-4">
             <div class="flex items-center justify-between mb-2">
-              <h3 class="text-lg font-semibold text-gray-900">{{player.name}}</h3>
+              <h3 class="text-lg font-semibold text-gray-900">{{getPlayerDisplayName(player)}}</h3>
               <span *ngIf="player.jersey_number" class="bg-blue-100 text-blue-800 text-sm font-medium px-2 py-1 rounded">
                 #{{player.jersey_number}}
               </span>
@@ -278,9 +278,10 @@ import { Team } from '../../models/types';
                   min="48"
                   max="96"
                   step="0.5"
-                  placeholder="e.g., 72 for 6'0&quot;"
+                  placeholder="Default: 70 inches (5'10&quot;)"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
+                <p class="text-xs text-gray-500 mt-1">Leave blank to use default height of 70 inches</p>
               </div>
 
               <!-- Reach -->
@@ -292,9 +293,10 @@ import { Team } from '../../models/types';
                   min="60"
                   max="140"
                   step="0.5"
-                  placeholder="e.g., 96 for 8'0&quot;"
+                  placeholder="Default: 80 inches (6'8&quot;)"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
+                <p class="text-xs text-gray-500 mt-1">Leave blank to use default reach of 80 inches</p>
               </div>
 
               <!-- Dominant Hand -->
@@ -465,7 +467,7 @@ export class PlayersComponent implements OnInit, OnDestroy {
     if (this.searchTerm.trim()) {
       const term = this.searchTerm.toLowerCase().trim();
       filtered = filtered.filter(player => 
-        player.name.toLowerCase().includes(term) ||
+        this.getPlayerDisplayName(player).toLowerCase().includes(term) ||
         (player.jersey_number && player.jersey_number.toString().includes(term))
       );
     }
@@ -560,6 +562,11 @@ export class PlayersComponent implements OnInit, OnDestroy {
   }
 
   // Helper methods
+  getPlayerDisplayName(player: Player): string {
+    if (player.name) return player.name;
+    return `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'Unknown Player';
+  }
+
   getPositionDisplay(position: string): string {
     return this.playerService.getPositionDisplayName(position);
   }

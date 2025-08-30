@@ -96,10 +96,11 @@ export class PlayerService {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return this.playersSubject.value;
     
-    return this.playersSubject.value.filter(player => 
-      player.name.toLowerCase().includes(term) ||
-      (player.jersey_number && player.jersey_number.toString().includes(term))
-    );
+    return this.playersSubject.value.filter(player => {
+      const playerName = player.name || `${player.first_name || ''} ${player.last_name || ''}`.trim();
+      return playerName.toLowerCase().includes(term) ||
+        (player.jersey_number && player.jersey_number.toString().includes(term));
+    });
   }
 
   // Get players by position
@@ -156,5 +157,13 @@ export class PlayerService {
       'graduate': 'Graduate'
     };
     return yearMap[year || ''] || 'N/A';
+  }
+
+  // Bulk import players
+  bulkImportPlayers(teamId: number, players: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/bulk-import`, {
+      team_id: teamId,
+      players: players
+    });
   }
 }

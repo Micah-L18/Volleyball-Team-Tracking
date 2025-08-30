@@ -40,11 +40,12 @@ router.get('/team/:teamId', authMiddleware, async (req, res) => {
     }
 
     const result = await pool.query(`
-      SELECT p.*, t.name as team_name, t.season
+      SELECT p.*, t.name as team_name, t.season,
+             p.first_name || COALESCE(' ' || p.last_name, '') as name
       FROM player p
       JOIN team t ON p.team_id = t.id
       WHERE p.team_id = $1
-      ORDER BY p.jersey_number, p.name
+      ORDER BY p.jersey_number, p.last_name, p.first_name
     `, [teamId]);
 
     res.json(result.rows);
@@ -80,7 +81,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 // Create new player
 router.post('/', authMiddleware, [
-  body('name').trim().isLength({ min: 1 }).withMessage('Player name is required'),
+  body('first_name').trim().isLength({ min: 1 }).withMessage('First name is required'),
+  body('last_name').optional().trim(),
   body('team_id').isInt().withMessage('Valid team ID is required'),
   body('jersey_number').optional().isInt({ min: 0, max: 99 }).withMessage('Jersey number must be between 0-99'),
   body('position').optional().isIn(['setter', 'outside_hitter', 'middle_blocker', 'opposite', 'libero', 'defensive_specialist']).withMessage('Invalid position'),
@@ -102,12 +104,16 @@ router.post('/', authMiddleware, [
     }
 
     const {
-      name, position, year, jersey_number, height, reach,
-      dominant_hand, contact_info, notes, photo_url, team_id
+      first_name, last_name, position, year, jersey_number, dominant_hand, 
+      contact_info, notes, photo_url, team_id
     } = req.body;
 
+    // Set default values for height and reach if not provided
+    const height = req.body.height || 70;
+    const reach = req.body.reach || 80;
+
     console.log('Extracted data:', {
-      name, position, year, jersey_number, height, reach,
+      first_name, last_name, position, year, jersey_number, height, reach,
       dominant_hand, contact_info, notes, photo_url, team_id
     });
 
@@ -146,11 +152,11 @@ router.post('/', authMiddleware, [
 
     const result = await pool.query(`
       INSERT INTO player (
-        name, position, year, jersey_number, height, reach,
+        first_name, last_name, position, year, jersey_number, height, reach,
         dominant_hand, contact_info, notes, photo_url, team_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
-    `, [name, position, year, jersey_number, height, reach,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *, first_name || COALESCE(' ' || last_name, '') as name
+    `, [first_name, last_name, position, year, jersey_number, height, reach,
         dominant_hand, contact_info, notes, photo_url, team_id]);
 
     res.status(201).json(result.rows[0]);
@@ -162,7 +168,8 @@ router.post('/', authMiddleware, [
 
 // Update player
 router.put('/:id', authMiddleware, [
-  body('name').optional().trim().isLength({ min: 1 }).withMessage('Player name cannot be empty'),
+  body('first_name').optional().trim().isLength({ min: 1 }).withMessage('First name cannot be empty'),
+  body('last_name').optional().trim(),
   body('jersey_number').optional().isInt({ min: 0, max: 99 }).withMessage('Jersey number must be between 0-99'),
   body('position').optional().isIn(['setter', 'outside_hitter', 'middle_blocker', 'opposite', 'libero', 'defensive_specialist']).withMessage('Invalid position'),
   body('year').optional().isIn(['freshman', 'sophomore', 'junior', 'senior', 'graduate']).withMessage('Invalid year'),
@@ -178,7 +185,7 @@ router.put('/:id', authMiddleware, [
 
     const { id } = req.params;
     const {
-      name, position, year, jersey_number, height, reach,
+      first_name, last_name, position, year, jersey_number, height, reach,
       dominant_hand, contact_info, notes, photo_url
     } = req.body;
 
@@ -214,20 +221,21 @@ router.put('/:id', authMiddleware, [
 
     const result = await pool.query(`
       UPDATE player SET
-        name = COALESCE($1, name),
-        position = COALESCE($2, position),
-        year = COALESCE($3, year),
-        jersey_number = COALESCE($4, jersey_number),
-        height = COALESCE($5, height),
-        reach = COALESCE($6, reach),
-        dominant_hand = COALESCE($7, dominant_hand),
-        contact_info = COALESCE($8, contact_info),
-        notes = COALESCE($9, notes),
-        photo_url = COALESCE($10, photo_url),
+        first_name = COALESCE($1, first_name),
+        last_name = COALESCE($2, last_name),
+        position = COALESCE($3, position),
+        year = COALESCE($4, year),
+        jersey_number = COALESCE($5, jersey_number),
+        height = COALESCE($6, height),
+        reach = COALESCE($7, reach),
+        dominant_hand = COALESCE($8, dominant_hand),
+        contact_info = COALESCE($9, contact_info),
+        notes = COALESCE($10, notes),
+        photo_url = COALESCE($11, photo_url),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $11
-      RETURNING *
-    `, [name, position, year, jersey_number, height, reach,
+      WHERE id = $12
+      RETURNING *, first_name || COALESCE(' ' || last_name, '') as name
+    `, [first_name, last_name, position, year, jersey_number, height, reach,
         dominant_hand, contact_info, notes, photo_url, id]);
 
     res.json(result.rows[0]);
@@ -265,6 +273,148 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error deleting player:', error);
     res.status(500).json({ error: 'Failed to delete player' });
+  }
+});
+
+// Bulk import players
+router.post('/bulk-import', authMiddleware, [
+  body('team_id').isInt().withMessage('Valid team ID is required'),
+  body('players').isArray({ min: 1 }).withMessage('Players array is required and must not be empty'),
+  body('players.*.first_name').trim().isLength({ min: 1 }).withMessage('First name is required for all players'),
+  body('players.*.last_name').optional().trim(),
+  body('players.*.jersey_number').optional().isInt({ min: 0, max: 99 }).withMessage('Jersey number must be between 0-99'),
+  body('players.*.position').optional().isIn(['setter', 'outside_hitter', 'middle_blocker', 'opposite', 'libero', 'defensive_specialist']).withMessage('Invalid position'),
+  body('players.*.year').optional().isIn(['freshman', 'sophomore', 'junior', 'senior', 'graduate']).withMessage('Invalid year'),
+  body('players.*.height').optional().isFloat({ min: 48, max: 96 }).withMessage('Height must be between 48-96 inches'),
+  body('players.*.reach').optional().isFloat({ min: 60, max: 140 }).withMessage('Reach must be between 60-140 inches'),
+  body('players.*.dominant_hand').optional().isIn(['Right', 'Left', 'Ambidextrous']).withMessage('Invalid dominant hand')
+], async (req, res) => {
+  try {
+    console.log('=== BULK PLAYER IMPORT DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('User ID:', req.user.id);
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+
+    const { team_id, players } = req.body;
+
+    // Verify user has coaching access to this team
+    console.log('Checking team access for user:', req.user.id, 'team:', team_id);
+    const teamCheck = await pool.query(
+      'SELECT role FROM team_users WHERE team_id = $1 AND user_id = $2',
+      [team_id, req.user.id]
+    );
+
+    if (teamCheck.rows.length === 0) {
+      console.log('❌ Access denied - user not in team');
+      return res.status(403).json({ error: 'Access denied to this team' });
+    }
+
+    const userRole = teamCheck.rows[0].role;
+    if (!['head_coach', 'assistant_coach'].includes(userRole)) {
+      console.log('❌ Access denied - insufficient role');
+      return res.status(403).json({ error: 'Only coaches can add players' });
+    }
+
+    // Check for duplicate jersey numbers within the import and existing team
+    const existingJerseys = await pool.query(
+      'SELECT jersey_number FROM player WHERE team_id = $1 AND jersey_number IS NOT NULL',
+      [team_id]
+    );
+    const existingJerseyNumbers = new Set(existingJerseys.rows.map(row => row.jersey_number));
+    
+    const importJerseyNumbers = new Set();
+    const duplicateJerseys = [];
+    
+    for (const player of players) {
+      if (player.jersey_number) {
+        if (existingJerseyNumbers.has(player.jersey_number) || importJerseyNumbers.has(player.jersey_number)) {
+          duplicateJerseys.push(player.jersey_number);
+        }
+        importJerseyNumbers.add(player.jersey_number);
+      }
+    }
+
+    if (duplicateJerseys.length > 0) {
+      return res.status(400).json({ 
+        error: 'Duplicate jersey numbers found', 
+        duplicates: duplicateJerseys 
+      });
+    }
+
+    // Begin transaction
+    await pool.query('BEGIN');
+
+    const importResults = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (const playerData of players) {
+        try {
+          const {
+            first_name, last_name, position, year, jersey_number, dominant_hand, 
+            contact_info, notes, photo_url
+          } = playerData;
+
+          // Set default values for height and reach if not provided
+          const height = playerData.height || 70;
+          const reach = playerData.reach || 80;
+
+          const result = await pool.query(`
+            INSERT INTO player (
+              first_name, last_name, position, year, jersey_number, height, reach,
+              dominant_hand, contact_info, notes, photo_url, team_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING *, first_name || COALESCE(' ' || last_name, '') as name
+          `, [first_name, last_name, position, year, jersey_number, height, reach,
+              dominant_hand, contact_info, notes, photo_url, team_id]);
+
+          importResults.push({
+            success: true,
+            player: result.rows[0],
+            originalData: playerData
+          });
+          successCount++;
+
+        } catch (playerError) {
+          console.error('Error importing player:', playerError);
+          importResults.push({
+            success: false,
+            error: playerError.message,
+            originalData: playerData
+          });
+          errorCount++;
+        }
+      }
+
+      // Commit transaction
+      await pool.query('COMMIT');
+
+      console.log(`✅ Bulk import completed: ${successCount} successful, ${errorCount} errors`);
+
+      res.status(201).json({
+        message: `Bulk import completed: ${successCount} players added successfully`,
+        summary: {
+          total: players.length,
+          successful: successCount,
+          errors: errorCount
+        },
+        results: importResults
+      });
+
+    } catch (transactionError) {
+      await pool.query('ROLLBACK');
+      throw transactionError;
+    }
+
+  } catch (error) {
+    console.error('Error in bulk player import:', error);
+    res.status(500).json({ error: 'Failed to import players' });
   }
 });
 
